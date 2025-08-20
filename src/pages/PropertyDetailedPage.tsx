@@ -4,8 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import Lightbox from "react-image-lightbox";
-import "react-image-lightbox/style.css";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { IoBedOutline } from "react-icons/io5";
 import { PiBathtub } from "react-icons/pi";
 import { MdSquareFoot, MdMeetingRoom } from "react-icons/md";
@@ -261,21 +260,37 @@ const PropertyDetailedPage = () => {
         </button>
       </div>
 
-      {/* Lightbox */}
-      {isOpen && (
-        <Lightbox
-          mainSrc={images[photoIndex]}
-          nextSrc={images[(photoIndex + 1) % images.length]}
-          prevSrc={images[(photoIndex + images.length - 1) % images.length]}
-          onCloseRequest={() => setIsOpen(false)}
-          onMovePrevRequest={() =>
-            setPhotoIndex((photoIndex + images.length - 1) % images.length)
-          }
-          onMoveNextRequest={() =>
-            setPhotoIndex((photoIndex + 1) % images.length)
-          }
-        />
-      )}
+      {/* Image Modal */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-4xl w-full p-0 bg-black">
+          <div className="relative">
+            <img
+              src={images[photoIndex]}
+              alt={`Property ${photoIndex + 1}`}
+              className="w-full h-auto max-h-[80vh] object-contain"
+            />
+            
+            {/* Navigation arrows */}
+            <button
+              onClick={() => setPhotoIndex((photoIndex + images.length - 1) % images.length)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full text-2xl transition-colors"
+            >
+              <IoIosArrowBack />
+            </button>
+            <button
+              onClick={() => setPhotoIndex((photoIndex + 1) % images.length)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full text-2xl transition-colors"
+            >
+              <IoIosArrowForward />
+            </button>
+            
+            {/* Image counter */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded">
+              {photoIndex + 1} / {images.length}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Navigation Bar */}
       <div className="bg-slate-600 text-white px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4 -mt-8 relative z-20">
