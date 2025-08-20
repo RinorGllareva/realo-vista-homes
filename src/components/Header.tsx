@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CiPhone } from "react-icons/ci";
 import logoImage from "../assets/LogoMainSection.png";
 
@@ -7,8 +7,17 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
+  // Check if we're on property detail page to always show scrolled state
+  const isPropertyDetailPage = location.pathname.startsWith('/properties/');
+  
   useEffect(() => {
+    if (isPropertyDetailPage) {
+      setScrolled(true);
+      return;
+    }
+
     const handleScroll = () => {
       if (window.scrollY > 50) {
         setScrolled(true);
@@ -19,7 +28,7 @@ const Header = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isPropertyDetailPage]);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
