@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ImSortAlphaAsc, ImSortAlphaDesc } from "react-icons/im";
-import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
+import { MdSortByAlpha } from "react-icons/md";
 import PropertyCard from "./PropertyCard";
 
 interface Property {
@@ -162,7 +162,7 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
           ) : sortOrder === 2 ? (
             <ImSortAlphaDesc />
           ) : (
-            <SortByAlphaIcon />
+            <MdSortByAlpha />
           )}
         </button>
       </div>
