@@ -1,0 +1,448 @@
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import Lightbox from "react-image-lightbox";
+import "react-image-lightbox/style.css";
+import { IoBedOutline } from "react-icons/io5";
+import { PiBathtub } from "react-icons/pi";
+import { MdSquareFoot, MdMeetingRoom } from "react-icons/md";
+import { SiLevelsdotfyi } from "react-icons/si";
+import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { Button } from "@/components/ui/button";
+
+interface Property {
+  propertyId: string;
+  title: string;
+  city: string;
+  price: number;
+  propertyType: string;
+  isForSale: boolean;
+  description?: string;
+  address?: string;
+  state?: string;
+  zipCode?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  floorLevel?: number | string;
+  squareFeet?: number;
+  spaces?: number;
+  orientation?: string;
+  heatingSystem?: string;
+  furniture?: string;
+  additionalFeatures?: string;
+  hasOwnershipDocument?: boolean;
+  neighborhood?: string;
+  builder?: string;
+  complex?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  interiorVideo?: string;
+  images: Array<{ imageUrl: string }>;
+}
+
+const PropertyDetailedPage = () => {
+  const navigate = useNavigate();
+  const { title, id } = useParams();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const sliderRef = useRef<Slider>(null);
+  const virtualPortRef = useRef<HTMLDivElement>(null);
+
+  const scrollToVirtualTour = () => {
+    virtualPortRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleContactClick = () => {
+    navigate("/contact-us");
+  };
+
+  const scrollLeft = () => {
+    sliderRef.current?.slickPrev();
+  };
+
+  const scrollRight = () => {
+    sliderRef.current?.slickNext();
+  };
+
+  useEffect(() => {
+    const fetchPropertyData = async () => {
+      try {
+        const response = await axios.get(
+          `https://realo-realestate.com/api/api/Property/GetProperty/${id}`
+        );
+        setProperty(response.data);
+      } catch (error) {
+        console.error("Error fetching property data:", error);
+      }
+    };
+    
+    if (id) {
+      fetchPropertyData();
+    }
+  }, [id]);
+
+  if (!property) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading property details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const sliderSettings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    arrows: false,
+    centerMode: true,
+  };
+
+  const images = property.images.map((img) => img.imageUrl);
+
+  const handleImageClick = (index: number) => {
+    setPhotoIndex(index);
+    setIsOpen(true);
+  };
+
+  const renderIcons = () => {
+    const type = property.propertyType?.toLowerCase();
+    
+    switch (type) {
+      case "house":
+        return (
+          <>
+            <span className="flex items-center gap-2 text-foreground">
+              <IoBedOutline className="text-xl" /> {property.bedrooms} Dhoma
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <PiBathtub className="text-xl" /> {property.bathrooms} Banjo
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Katet
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+            </span>
+          </>
+        );
+
+      case "apartment":
+        return (
+          <>
+            <span className="flex items-center gap-2 text-foreground">
+              <IoBedOutline className="text-xl" /> {property.bedrooms} Dhoma
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <PiBathtub className="text-xl" /> {property.bathrooms} Banjo
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Kati
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+            </span>
+          </>
+        );
+
+      case "office":
+      case "store":
+        return (
+          <>
+            <span className="flex items-center gap-2 text-foreground">
+              <MdMeetingRoom className="text-xl" /> {property.spaces} Hapësira
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <PiBathtub className="text-xl" /> {property.bathrooms} Banjo
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Kati
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+            </span>
+          </>
+        );
+
+      case "land":
+        return (
+          <span className="flex items-center gap-2 text-foreground">
+            <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+          </span>
+        );
+
+      case "building":
+        return (
+          <>
+            <span className="flex items-center gap-2 text-foreground">
+              <MdMeetingRoom className="text-xl" /> {property.spaces} Hapësira
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Kati
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="flex items-center gap-2 text-foreground">
+              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+            </span>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      {/* Property Header */}
+      <div className="pt-32 px-4 md:px-16 max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-baseline mb-4">
+          <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+            {property.title}, {property.city}
+          </h1>
+          <p className="text-2xl md:text-3xl font-bold text-real-estate-secondary mt-2 md:mt-0">
+            €{property.price.toLocaleString()}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-muted-foreground">
+          {renderIcons()}
+        </div>
+      </div>
+
+      {/* Image Slider */}
+      <div className="relative w-full mt-8">
+        <Slider ref={sliderRef} {...sliderSettings}>
+          {property.images.map((image, index) => (
+            <div key={index} className="relative">
+              <img
+                src={image.imageUrl}
+                alt={`Property ${index + 1}`}
+                className="w-full h-96 md:h-[500px] object-cover cursor-pointer"
+                onClick={() => handleImageClick(index)}
+              />
+            </div>
+          ))}
+        </Slider>
+
+        <button
+          onClick={scrollLeft}
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full text-2xl z-10 transition-colors"
+        >
+          <IoIosArrowBack />
+        </button>
+        <button
+          onClick={scrollRight}
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full text-2xl z-10 transition-colors"
+        >
+          <IoIosArrowForward />
+        </button>
+      </div>
+
+      {/* Lightbox */}
+      {isOpen && (
+        <Lightbox
+          mainSrc={images[photoIndex]}
+          nextSrc={images[(photoIndex + 1) % images.length]}
+          prevSrc={images[(photoIndex + images.length - 1) % images.length]}
+          onCloseRequest={() => setIsOpen(false)}
+          onMovePrevRequest={() =>
+            setPhotoIndex((photoIndex + images.length - 1) % images.length)
+          }
+          onMoveNextRequest={() =>
+            setPhotoIndex((photoIndex + 1) % images.length)
+          }
+        />
+      )}
+
+      {/* Navigation Bar */}
+      <div className="bg-slate-600 text-white px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4 -mt-8 relative z-20">
+        <Button 
+          onClick={handleContactClick}
+          className="bg-real-estate-secondary hover:bg-real-estate-secondary/90 text-black font-bold"
+        >
+          Book A Viewing
+        </Button>
+        <div className="flex gap-4 md:gap-8 text-sm md:text-base">
+          <a href="#details" className="hover:text-real-estate-secondary transition-colors">
+            DETAJET
+          </a>
+          {property.interiorVideo && (
+            <a 
+              href="#virtual-tour" 
+              onClick={scrollToVirtualTour}
+              className="hover:text-real-estate-secondary transition-colors cursor-pointer"
+            >
+              VIRTUAL TOUR
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Property Details */}
+      <div id="details" className="bg-gray-100 px-4 md:px-8 py-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Description */}
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+                Informatat e Pronës
+              </h2>
+              <hr className="border-gray-300 mb-4" />
+              <p className="text-muted-foreground leading-relaxed mb-6">
+                {property.description || "No description available."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+              <div className="space-y-3">
+                {property.address && property.city && property.state && property.zipCode && (
+                  <p>
+                    <strong className="text-foreground">Adresa:</strong>{" "}
+                    {property.address}, {property.city}, {property.state}, {property.zipCode}
+                  </p>
+                )}
+                {property.bedrooms && (
+                  <p>
+                    <strong className="text-foreground">Dhomat:</strong> {property.bedrooms}
+                    {property.bathrooms && (
+                      <>
+                        {" | "}
+                        <strong className="text-foreground">Banjot:</strong> {property.bathrooms}
+                      </>
+                    )}
+                  </p>
+                )}
+                {property.squareFeet && (
+                  <p>
+                    <strong className="text-foreground">Siperfaqja:</strong> {property.squareFeet} m²
+                  </p>
+                )}
+                {property.orientation && property.orientation !== "N/A" && property.orientation !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Orientimi:</strong> {property.orientation}
+                  </p>
+                )}
+                {property.heatingSystem && property.heatingSystem !== "N/A" && property.heatingSystem !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Sistemi i Ngrohjes:</strong> {property.heatingSystem}
+                  </p>
+                )}
+                {property.furniture && property.furniture !== "N/A" && property.furniture !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Mobile:</strong> {property.furniture}
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                {property.hasOwnershipDocument !== undefined && (
+                  <p>
+                    <strong className="text-foreground">Fleta Poseduse:</strong>{" "}
+                    {property.hasOwnershipDocument ? "Po" : "Jo"}
+                  </p>
+                )}
+                {property.floorLevel && property.floorLevel !== "N/A" && property.floorLevel !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Kati:</strong> {property.floorLevel}
+                  </p>
+                )}
+                {property.neighborhood && property.neighborhood !== "N/A" && property.neighborhood !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Lagjia:</strong> {property.neighborhood}
+                  </p>
+                )}
+                {property.builder && property.builder !== "N/A" && property.builder !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Ndertuesit:</strong> {property.builder}
+                  </p>
+                )}
+                {property.complex && property.complex !== "N/A" && property.complex !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Kompleksi Banesor:</strong> {property.complex}
+                  </p>
+                )}
+                {property.country && property.country !== "N/A" && property.country !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Shteti:</strong> {property.country}
+                  </p>
+                )}
+                {property.additionalFeatures && property.additionalFeatures !== "N/A" && property.additionalFeatures !== "string" && (
+                  <p>
+                    <strong className="text-foreground">Vecori të Tjera:</strong> {property.additionalFeatures}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Map */}
+          <div className="h-96 rounded-lg overflow-hidden border border-gray-300">
+            <iframe
+              title="Property Location"
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              src={`https://www.google.com/maps?q=${property.latitude || 42.6629},${property.longitude || 21.1655}&z=15&output=embed`}
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Virtual Tour */}
+      {property.interiorVideo && (
+        <div
+          id="virtual-tour"
+          ref={virtualPortRef}
+          className="bg-amber-50 px-4 md:px-8 py-8"
+        >
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 text-center">
+              Property Virtual Tour
+            </h2>
+            <hr className="border-gray-300 mb-6 w-24 mx-auto" />
+            <div className="aspect-video rounded-lg overflow-hidden">
+              <iframe
+                src={property.interiorVideo}
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                allowFullScreen
+                title="Virtual Tour"
+                className="w-full h-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Footer />
+    </div>
+  );
+};
+
+export default PropertyDetailedPage;

@@ -53,11 +53,14 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
   };
 
   const handlePropertyTypeFilter = (type: string) => {
-    setSelectedPropertyType(prevType => prevType === type ? null : type);
-    setFilters((prevFilters: any) => ({
-      ...prevFilters,
-      propertyType: selectedPropertyType === type ? null : type,
-    }));
+    setSelectedPropertyType(prevType => {
+      const newType = prevType === type ? null : type;
+      setFilters((prevFilters: any) => ({
+        ...prevFilters,
+        propertyType: newType,
+      }));
+      return newType;
+    });
   };
 
   const handleRedirect = () => navigate("/contact-us");
