@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import logoImage from "../assets/logo.png";
+import logoImage from "../assets/LogoMainSection.png";
 import { GiGalaxy } from "react-icons/gi";
 
 const Footer = () => {
@@ -9,11 +9,11 @@ const Footer = () => {
   const handleRedirect = () => {
     navigate("/contact-us");
   };
-  
+
   const handleHomeRedirect = () => {
     navigate("/");
   };
-  
+
   const handlePropertyRedirect = () => {
     navigate("/Property");
   };
@@ -40,17 +40,17 @@ const Footer = () => {
               <span className="absolute -bottom-2 left-0 md:left-0 w-12 h-px bg-gray-500"></span>
             </h6>
             <p className="text-base mb-4">
-              Ekipi ynë, në zemër të qytetit, ofron shërbim të personalizuar
-              për çdo nevojë.
+              Ekipi ynë, në zemër të qytetit, ofron shërbim të personalizuar për
+              çdo nevojë.
             </p>
             <div className="flex flex-col gap-2">
-              <a 
-                href="/about" 
+              <a
+                href="/about"
                 className="inline-block text-real-estate-secondary border border-real-estate-secondary rounded-full px-4 py-1 text-sm transition-colors hover:bg-real-estate-secondary hover:text-real-estate-primary"
               >
                 Na Kontaktoni
               </a>
-              <a 
+              <a
                 onClick={handleRedirect}
                 className="inline-block text-real-estate-secondary border border-real-estate-secondary rounded-full px-4 py-1 text-sm transition-colors hover:bg-real-estate-secondary hover:text-real-estate-primary cursor-pointer"
               >
@@ -67,7 +67,7 @@ const Footer = () => {
             </h6>
             <ul className="list-none space-y-2">
               <li>
-                <a 
+                <a
                   onClick={handleHomeRedirect}
                   className="font-text text-real-estate-secondary cursor-pointer hover:text-white transition-colors"
                 >
@@ -75,39 +75,15 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a 
+                <a
                   href="/about"
                   className="font-text text-real-estate-secondary hover:text-white transition-colors"
                 >
                   Rreth Nesh
                 </a>
               </li>
-              <li>      
-                <a 
-                  onClick={handlePropertyRedirect}
-                  className="font-text text-real-estate-secondary cursor-pointer hover:text-white transition-colors"
-                >
-                  Shërbimet
-                </a>
-              </li>
               <li>
-                <a 
-                  href="/team"
-                  className="font-text text-real-estate-secondary hover:text-white transition-colors"
-                >
-                  Ekipi
-                </a>
-              </li>
-              <li>
-                <a 
-                  onClick={handleRedirect}
-                  className="font-text text-real-estate-secondary cursor-pointer hover:text-white transition-colors"
-                >
-                  Info Shtesë
-                </a>
-              </li>
-              <li>
-                <a 
+                <a
                   onClick={handleRedirect}
                   className="font-text text-real-estate-secondary cursor-pointer hover:text-white transition-colors"
                 >
@@ -117,7 +93,7 @@ const Footer = () => {
             </ul>
           </div>
         </div>
-        
+
         <div className="text-center md:text-right mt-8">
           <p className="text-sm flex items-center justify-center md:justify-end gap-1">
             Website Created By Glaxio <GiGalaxy />

@@ -1,0 +1,32 @@
+/* Friz Quadrata No. 2 W01 - Regular */
+@font-face {
+  font-family: "Title"; /* Name you will use in CSS */
+  src: url("../fonts/Friz\ Quadrata\ No.\ 2\ W01.ttf") format("truetype"); /* Path corrected */
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* MB PictureHouse One W01 - Regular */
+@font-face {
+  font-family: "Text";
+  src: url("../fonts/MB\ PictureHouse\ One\ W01\ Regular.ttf")
+    format("truetype"); /* Path corrected */
+  font-weight: 700; /* Bold weight */
+  font-style: normal;
+}
+
+/* MIROLES - Regular Italic */
+@font-face {
+  font-family: "Logo";
+  src: url("../fonts/MIROLES\ 400.ttf") format("truetype"); /* Path corrected */
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Madani Arabic Variable */
+@font-face {
+  font-family: "FilterProperty";
+  src: url("../fonts/Quicksand.ttf") format("truetype"); /* Added file extension */
+  font-weight: 400;
+  font-style: italic;
+}

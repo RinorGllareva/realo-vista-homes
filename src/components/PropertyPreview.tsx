@@ -4,10 +4,8 @@ import axios from "axios";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import { IoBedOutline } from "react-icons/io5";
 import { PiBathtub } from "react-icons/pi";
-import { MdSquareFoot } from "react-icons/md";
+import { MdSquareFoot, MdMeetingRoom } from "react-icons/md";
 import { SiLevelsdotfyi } from "react-icons/si";
-import { MdMeetingRoom } from "react-icons/md";
-import { Button } from "@/components/ui/button";
 
 interface Property {
   propertyId: string;
@@ -18,80 +16,32 @@ interface Property {
   isForSale: boolean;
   bedrooms?: number;
   bathrooms?: number;
-  floorLevel?: number;
+  floorLevel?: number | string;
   squareFeet?: number;
   spaces?: number;
   images?: Array<{ imageUrl: string }>;
 }
 
-const PropertyPreview = () => {
+const PropertyPreview: React.FC = () => {
   const navigate = useNavigate();
-  const propertyGridRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [properties, setProperties] = useState<Property[]>([]);
 
-  // Fetch all properties from API
   useEffect(() => {
-    const fetchProperties = async () => {
+    (async () => {
       try {
-        const response = await axios.get(
+        const { data } = await axios.get(
           "https://realo-realestate.com/api/api/Property/GetProperties"
         );
-        setProperties(response.data); // Set the fetched properties
-      } catch (error) {
-        console.error("Error fetching properties:", error);
-        // Set some mock data for demo purposes
-        setProperties([
-          {
-            propertyId: "1",
-            title: "Beautiful Apartment in Downtown",
-            city: "Prishtinë",
-            price: 150000,
-            propertyType: "apartment",
-            isForSale: true,
-            bedrooms: 3,
-            bathrooms: 2,
-            floorLevel: 5,
-            squareFeet: 120,
-            images: [{ imageUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" }]
-          },
-          {
-            propertyId: "2", 
-            title: "Modern House with Garden",
-            city: "Prishtinë",
-            price: 280000,
-            propertyType: "house",
-            isForSale: true,
-            bedrooms: 4,
-            bathrooms: 3,
-            floorLevel: 2,
-            squareFeet: 250,
-            images: [{ imageUrl: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400" }]
-          },
-          {
-            propertyId: "3",
-            title: "Commercial Office Space",
-            city: "Prishtinë", 
-            price: 200000,
-            propertyType: "office",
-            isForSale: false,
-            spaces: 6,
-            bathrooms: 2,
-            floorLevel: 3,
-            squareFeet: 180,
-            images: [{ imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400" }]
-          }
-        ]);
+        setProperties(data || []);
+      } catch (e) {
+        console.error("Error fetching properties:", e);
       }
-    };
-    fetchProperties();
+    })();
   }, []);
 
-  const handlePropertyClick = (property: Property) => {
-    navigate(`/properties/${property.title}/${property.propertyId}`);
-  };
-  
-  const getPropertyTypeName = (propertyType: string) => {
-    const typeMapping: { [key: string]: string } = {
+  const getTypeLabel = (t: string) => {
+    const map: Record<string, string> = {
       house: "Shtëpi",
       apartment: "Banesa",
       office: "Zyrë",
@@ -99,167 +49,174 @@ const PropertyPreview = () => {
       land: "Toka",
       building: "Objekte",
     };
-
-    // Return the mapped name or the original type if not found
-    return typeMapping[propertyType.toLowerCase()] || propertyType;
+    return map[t?.toLowerCase?.()] || t;
   };
 
   const scrollLeft = () => {
-    if (propertyGridRef.current) {
-      propertyGridRef.current.scrollBy({
-        left: -propertyGridRef.current.clientWidth,
-        behavior: "smooth",
-      });
-    }
+    if (!trackRef.current) return;
+    trackRef.current.scrollBy({
+      left: -trackRef.current.clientWidth,
+      behavior: "smooth",
+    });
   };
-
   const scrollRight = () => {
-    if (propertyGridRef.current) {
-      propertyGridRef.current.scrollBy({
-        left: propertyGridRef.current.clientWidth,
-        behavior: "smooth",
-      });
-    }
+    if (!trackRef.current) return;
+    trackRef.current.scrollBy({
+      left: trackRef.current.clientWidth,
+      behavior: "smooth",
+    });
   };
 
-  const handleViewMore = () => {
-    navigate("/Property");
-  };
+  const openDetail = (p: Property) =>
+    navigate(`/properties/${p.title}/${p.propertyId}`);
 
-  const renderIcons = (property: Property) => {
-    switch (property.propertyType.toLowerCase()) {
-      case "house":
-      case "apartment":
-        return (
-          <>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <IoBedOutline /> {property.bedrooms} Dhoma
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <PiBathtub /> {property.bathrooms} Banjo
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <SiLevelsdotfyi /> {property.floorLevel} Kati
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <MdSquareFoot /> {property.squareFeet}m²
-            </div>
-          </>
-        );
-
-      case "office":
-      case "store":
-        return (
-          <>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <MdMeetingRoom /> {property.spaces} Hapësira
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <PiBathtub /> {property.bathrooms} Banjo
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <SiLevelsdotfyi /> {property.floorLevel} Kati
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <MdSquareFoot /> {property.squareFeet}m²
-            </div>
-          </>
-        );
-
-      case "land":
-        return (
-          <div className="flex items-center gap-1 text-sm text-gray-600">
-            <MdSquareFoot /> {property.squareFeet}m²
-          </div>
-        );
-
-      case "building":
-        return (
-          <>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <MdMeetingRoom /> {property.spaces} Hapësira
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <SiLevelsdotfyi /> {property.floorLevel} Kati
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <MdSquareFoot /> {property.squareFeet}m²
-            </div>
-          </>
-        );
-
-      default:
-        return null;
-    }
-  };
+  // Small helper to render a vertical icon+label
+  const spec = (icon: React.ReactNode, label: string) => (
+    <div className="flex flex-col items-center justify-start w-1/4 min-w-[56px]">
+      <div className="text-[1.15rem] text-[#666]">{icon}</div>
+      <span className="mt-1 text-[0.72rem] leading-tight text-[#666] text-center">
+        {label}
+      </span>
+    </div>
+  );
 
   return (
-    <section className="relative px-5 py-10 bg-real-estate-accent overflow-hidden">
-      <div className="text-center mb-8">
-        <div className="flex justify-center items-center gap-2 font-title">
-          <h1 className="text-4xl md:text-5xl font-light text-gray-700">REALO's</h1>
-          <h3 className="text-3xl md:text-4xl font-light text-gray-700">New Properties</h3>
+    <section className="relative bg-[#ebe1cf] px-5 py-10 overflow-hidden">
+      {/* header */}
+      <div className="mb-6 text-center">
+        <div className="flex items-center justify-center gap-3">
+          <h1 className="font-title text-[#7e7859] font-light text-4xl md:text-5xl">
+            REALO's
+          </h1>
+          <h3 className="font-title text-[#7e7859] font-light text-3xl md:text-4xl">
+            New Properties
+          </h3>
         </div>
-        <hr className="w-24 mx-auto mt-4 border-gray-400" />
+        <hr className="mt-4 w-24 mx-auto border-[#bdb8a1]" />
       </div>
 
-      <button 
-        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-transparent text-black border-none p-2 rounded-full cursor-pointer text-2xl z-30"
+      {/* arrows */}
+      <button
         onClick={scrollLeft}
+        aria-label="Scroll left"
+        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 hover:bg-black/70 text-white p-2 text-2xl z-30 transition"
       >
         <IoIosArrowBack />
       </button>
-      <button 
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-transparent text-black border-none p-2 rounded-full cursor-pointer text-2xl z-30"
+      <button
         onClick={scrollRight}
+        aria-label="Scroll right"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg黑/50 hover:bg黑/70 text-white p-2 text-2xl z-30 transition"
       >
         <IoIosArrowForward />
       </button>
 
-      <div 
-        className="flex gap-5 overflow-x-auto scroll-smooth pb-5 overflow-hidden"
-        ref={propertyGridRef}
+      {/* track */}
+      <div
+        ref={trackRef}
+        className="
+          flex gap-5 pb-5 overflow-x-auto scroll-smooth
+          [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+        "
       >
-        {properties.map((property) => (
-          <div
-            className="flex-none w-60 border border-gray-300 rounded-lg overflow-hidden shadow-card transition-transform hover:shadow-hover hover:-translate-y-1 bg-white relative cursor-pointer"
-            key={property.propertyId}
-            onClick={() => handlePropertyClick(property)}
-          >
-            <span className="absolute top-2 left-2 bg-orange-600 text-white px-2 py-1 text-xs font-bold font-text rounded z-20">
-              {property.isForSale ? "SHITJE" : "QERA"}
-            </span>
-            <span className="absolute top-2 right-2 bg-real-estate-primary text-white px-2 py-1 text-xs font-bold font-text rounded z-20">
-              {getPropertyTypeName(property.propertyType)}
-            </span>
-            <div className="relative overflow-hidden h-44">
-              <img
-                src={property.images?.[0]?.imageUrl || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400"}
-                alt={property.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="p-4 text-left">
-              <h3 className="font-text text-sm text-gray-500">{property.city}</h3>
-              <p className="font-text text-base font-bold mb-1 text-gray-800">{property.title}</p>
-              <p className="font-text text-xl text-real-estate-secondary font-light mt-1">
-                €{property.price.toLocaleString()}
-              </p>
-              <div className="flex flex-wrap justify-between mt-2 gap-1">
-                {renderIcons(property)}
+        {properties.map((p) => {
+          const type = p.propertyType?.toLowerCase?.();
+
+          return (
+            <div
+              key={p.propertyId}
+              onClick={() => openDetail(p)}
+              className="
+                relative cursor-pointer
+                flex-none
+                basis-[55%] max-w-[300px] min-w-[250px]
+                md:basis-[45%]
+                sm:basis-[60%]
+                max-[450px]:basis-[40%]
+                bg-white border border-gray-200 rounded-[8px]
+                shadow-[0_4px_10px_rgba(0,0,0,0.1)]
+                transition-transform hover:-translate-y-[5px]
+              "
+            >
+              {/* SALE/RENT tag */}
+              <span className="absolute top-2 left-2 z-20 bg-[#d46905] text-white px-2 py-1 text-[12px] font-bold rounded">
+                {p.isForSale ? "SHITJE" : "QERA"}
+              </span>
+              {/* type tag */}
+              <span className="absolute top-2 right-2 z-20 bg-[#d4b505] text-white px-2 py-1 text-[12px] font-bold rounded">
+                {getTypeLabel(p.propertyType)}
+              </span>
+
+              {/* image */}
+              <div className="relative h-[180px] overflow-hidden">
+                <img
+                  src={
+                    p.images?.[0]?.imageUrl ||
+                    "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800"
+                  }
+                  alt={p.title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+
+              {/* details */}
+              <div className="p-[15px] text-left">
+                <h3 className="font-[Montserrat] text-[14px] text-[#888]">
+                  {p.city}
+                </h3>
+                <p className="font-[Montserrat] text-[16px] font-bold text-[#333] mb-1">
+                  {p.title}
+                </p>
+                <p className="font-[Montserrat] text-[20px] text-[#d4b505] font-[200] mt-1">
+                  €{(p.price ?? 0).toLocaleString()}
+                </p>
+
+                {/* icons grid: icons on top, numbers+labels below */}
+                <div className="mt-3 flex flex-wrap justify-between gap-0">
+                  {type === "house" || type === "apartment" ? (
+                    <>
+                      {spec(<IoBedOutline />, `${p.bedrooms ?? "-"} Dhoma`)}
+                      {spec(<PiBathtub />, `${p.bathrooms ?? "-"} Banjo`)}
+                      {spec(<SiLevelsdotfyi />, `${p.floorLevel ?? "-"} Kati`)}
+                      {spec(<MdSquareFoot />, `${p.squareFeet ?? "-"}m²`)}
+                    </>
+                  ) : type === "office" || type === "store" ? (
+                    <>
+                      {spec(<MdMeetingRoom />, `${p.spaces ?? "-"} Hapësira`)}
+                      {spec(<PiBathtub />, `${p.bathrooms ?? "-"} Banjo`)}
+                      {spec(<SiLevelsdotfyi />, `${p.floorLevel ?? "-"} Kati`)}
+                      {spec(<MdSquareFoot />, `${p.squareFeet ?? "-"}m²`)}
+                    </>
+                  ) : type === "land" ? (
+                    spec(<MdSquareFoot />, `${p.squareFeet ?? "-"}m²`)
+                  ) : type === "building" ? (
+                    <>
+                      {spec(<MdMeetingRoom />, `${p.spaces ?? "-"} Hapësira`)}
+                      {spec(<SiLevelsdotfyi />, `${p.floorLevel ?? "-"} Kati`)}
+                      {spec(<MdSquareFoot />, `${p.squareFeet ?? "-"}m²`)}
+                    </>
+                  ) : null}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="text-center mt-8">
-        <Button 
-          onClick={handleViewMore} 
-          className="bg-gray-600 text-white px-5 py-2 border-none rounded font-text text-lg cursor-pointer transition-colors hover:bg-gray-800"
+      {/* view more */}
+      <div className="mt-8 text-center">
+        <button
+          onClick={() => navigate("/Property")}
+          className="
+            bg-[#4a5968] hover:bg-[#333] text-white
+            px-5 py-2 rounded
+            font-text text-[1.2rem]
+            transition-colors
+          "
         >
           Shikoni Të Gjitha Pronat
-        </Button>
+        </button>
       </div>
     </section>
   );

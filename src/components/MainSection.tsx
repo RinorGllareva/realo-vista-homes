@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const MainSection = () => {
+const MainSection: React.FC = () => {
   const [filters, setFilters] = useState({
     propertyType: "",
     minPrice: "",
@@ -11,18 +11,14 @@ const MainSection = () => {
 
   const navigate = useNavigate();
 
-  // Handle the change in the filter input
   const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFilters({
-      ...filters,
-      [name]: value,
-    });
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSearch = () => {
     const queryParams = new URLSearchParams(filters).toString();
-    navigate(`/Property?${queryParams}`); // Redirect to /Property page with filters as query params
+    navigate(`/Property?${queryParams}`);
   };
 
   const minPriceOptions = [
@@ -31,116 +27,216 @@ const MainSection = () => {
     2500000, 3000000, 3500000, 4000000, 4500000, 5000000, 6000000, 7000000,
     8000000, 9000000,
   ];
-
-  const maxPriceOptions = [
-    300, 1000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 200000, 300000,
-    400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000,
-    2500000, 3000000, 3500000, 4000000, 4500000, 5000000, 6000000, 7000000,
-    8000000, 9000000,
-  ];
+  const maxPriceOptions = [...minPriceOptions];
 
   return (
-    <div className="relative h-screen flex justify-center items-center text-white">
-      {/* Video Background */}
-      <video 
-        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
-        autoPlay 
-        loop 
+    <section className="relative h-screen text-white flex items-center justify-center">
+      {/* Background video */}
+      <video
+        className="absolute inset-0 h-full w-full object-cover -z-10"
+        autoPlay
+        loop
         muted
         playsInline
       >
         <source src="/Prishtina - Made with Clipchamp.mp4" type="video/mp4" />
       </video>
 
-      <div className="absolute top-0 left-0 w-full h-full bg-gradient-hero z-0"></div>
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/60 -z-0" />
 
-      <div className="absolute bottom-72 text-center z-20">
-        <div className="flex justify-center items-center gap-3 mb-4">
-          <h3 className="font-text text-4xl md:text-5xl font-normal text-yellow-400">WELCOME TO</h3>
-          <h1 className="font-title text-5xl md:text-7xl font-normal text-yellow-400">REALO</h1>
-          <h3 className="font-text text-4xl md:text-5xl font-normal text-yellow-400">REAL ESTATE</h3>
+      {/* Title */}
+      <div
+        className="
+          absolute text-center z-20
+          bottom-[300px] md:bottom-[300px] sm:bottom-[350px]
+          max-sm:bottom-[300px] [@media(max-width:768px)]:bottom-[400px]
+          [@media(max-width:480px)]:bottom-[280px] [@media(max-width:390px)]:bottom-0
+        "
+      >
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+          <h3 className="font-text text-[25px] sm:text-[35px] lg:text-[45px] font-normal text-[#ffd700] max-[480px]:text-[20px] max-[390px]:text-[1.1rem]">
+            WELCOME TO
+          </h3>
+          <h1 className="font-title text-[35px] sm:text-[55px] lg:text-[75px] font-normal text-[#ffd700] max-[480px]:text-[35px] max-[390px]:text-[2rem]">
+            REALO
+          </h1>
+          <h3 className="font-text text-[25px] sm:text-[35px] lg:text-[45px] font-normal text-[#ffd700] max-[480px]:text-[20px] max-[390px]:text-[1.1rem]">
+            REAL ESTATE
+          </h3>
         </div>
       </div>
 
-      {/* Filters Section */}
-      <div className="absolute bottom-16 text-center w-full z-20 flex flex-col items-center px-4">
-        <div className="mb-2">
-          <h3 className="font-text text-lg md:text-xl text-white text-left ml-5 mb-1">
+      {/* Filters */}
+      <div
+        className="
+          absolute z-20 w-full flex flex-col items-center text-center px-4
+          bottom-[70px] sm:bottom-20 max-[768px]:bottom-4 max-[480px]:bottom-8 max-[390px]:bottom-8
+        "
+      >
+        <div className="w-full max-w-5xl">
+          <h3
+            className="
+              font-[Montserrat] text-[20px] text-white text-left ml-5 mb-1
+              max-[768px]:text-[19px] max-[480px]:text-[16px] max-[390px]:text-[16px]
+            "
+          >
             Prona juaj ideale në Prishtinë…
           </h3>
         </div>
-        
-        <div className="flex flex-col md:flex-row gap-3 max-w-4xl">
+
+        {/* KEY CHANGE: fixed width when vertical, full width only on very small screens */}
+        <div
+          className="
+            inline-flex gap-2 sm:gap-3
+            max-[768px]:flex-col max-[768px]:gap-2
+            w-full max-w-5xl items-center
+          "
+        >
+          {/* Property Type */}
           <select
             name="propertyType"
             value={filters.propertyType}
             onChange={handleInputChange}
-            className="px-8 py-2 text-white font-text font-bold text-lg md:text-xl border-4 border-yellow-600 rounded bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            className="
+              px-10 py-2 text-white font-text font-bold text-lg md:text-xl
+              border-4 border-[#9f8151] rounded bg-white/10
+              focus:outline-none focus:ring-2 focus:ring-yellow-500
+              max-[1024px]:px-8 max-[1024px]:text-[16px]
+              max-[768px]:w-[22rem] max-[768px]:px-6 max-[768px]:py-3 max-[768px]:border-[3px]
+              max-[480px]:w-full
+            "
           >
-            <option value="" className="bg-real-estate-primary text-white">Lloji i pronës</option>
-            <option value="House" className="bg-real-estate-primary text-white">Shtëpi</option>
-            <option value="Apartment" className="bg-real-estate-primary text-white">Banesa</option>
-            <option value="Land" className="bg-real-estate-primary text-white">Troje</option>
-            <option value="Store" className="bg-real-estate-primary text-white">Lokale</option>
-            <option value="Warehouse" className="bg-real-estate-primary text-white">Depo</option>
-            <option value="Building" className="bg-real-estate-primary text-white">Objekte</option>
-            <option value="Office" className="bg-real-estate-primary text-white">Zyre</option>
+            <option className="bg-[#0a4834] text-white" value="">
+              Lloji i pronës
+            </option>
+            <option className="bg-[#0a4834] text-white" value="House">
+              Shtëpi
+            </option>
+            <option className="bg-[#0a4834] text-white" value="Apartment">
+              Banesa
+            </option>
+            <option className="bg-[#0a4834] text-white" value="Land">
+              Troje
+            </option>
+            <option className="bg-[#0a4834] text-white" value="Store">
+              Lokale
+            </option>
+            <option className="bg-[#0a4834] text-white" value="Warehouse">
+              Depo
+            </option>
+            <option className="bg-[#0a4834] text-white" value="Building">
+              Objekte
+            </option>
+            <option className="bg-[#0a4834] text-white" value="Office">
+              Zyre
+            </option>
           </select>
 
+          {/* Min Price */}
           <select
             name="minPrice"
             value={filters.minPrice}
             onChange={handleInputChange}
-            className="px-8 py-2 text-white font-text font-bold text-lg md:text-xl border-4 border-yellow-600 rounded bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            className="
+              px-10 py-2 text-white font-text font-bold text-lg md:text-xl
+              border-4 border-[#9f8151] rounded bg-white/10
+              focus:outline-none focus:ring-2 focus:ring-yellow-500
+              max-[1024px]:px-8 max-[1024px]:text-[16px]
+              max-[768px]:w-[22rem] max-[768px]:px-6 max-[768px]:py-3 max-[768px]:border-[3px]
+              max-[480px]:w-full
+            "
           >
-            <option value="" className="bg-real-estate-primary text-white">Min Çmimi</option>
+            <option className="bg-[#0a4834] text-white" value="">
+              Min Çmimi
+            </option>
             {minPriceOptions.map((price) => (
-              <option key={price} value={price} className="bg-real-estate-primary text-white">
+              <option
+                key={price}
+                value={price}
+                className="bg-[#0a4834] text-white"
+              >
                 {price.toLocaleString("en-US")}
               </option>
             ))}
           </select>
 
+          {/* Max Price */}
           <select
             name="maxPrice"
             value={filters.maxPrice}
             onChange={handleInputChange}
-            className="px-8 py-2 text-white font-text font-bold text-lg md:text-xl border-4 border-yellow-600 rounded bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            className="
+              px-10 py-2 text-white font-text font-bold text-lg md:text-xl
+              border-4 border-[#9f8151] rounded bg-white/10
+              focus:outline-none focus:ring-2 focus:ring-yellow-500
+              max-[1024px]:px-8 max-[1024px]:text-[16px]
+              max-[768px]:w-[22rem] max-[768px]:px-6 max-[768px]:py-3 max-[768px]:border-[3px]
+              max-[480px]:w-full
+            "
           >
-            <option value="" className="bg-real-estate-primary text-white">Max Çmimi</option>
+            <option className="bg-[#0a4834] text-white" value="">
+              Max Çmimi
+            </option>
             {maxPriceOptions.map((price) => (
-              <option key={price} value={price} className="bg-real-estate-primary text-white">
+              <option
+                key={price}
+                value={price}
+                className="bg-[#0a4834] text-white"
+              >
                 {price.toLocaleString("en-US")}
               </option>
             ))}
           </select>
 
+          {/* Bedrooms */}
           <select
             name="bedrooms"
             value={filters.bedrooms}
             onChange={handleInputChange}
-            className="px-8 py-2 text-white font-text font-bold text-lg md:text-xl border-4 border-yellow-600 rounded bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            className="
+              px-10 py-2 text-white font-text font-bold text-lg md:text-xl
+              border-4 border-[#9f8151] rounded bg-white/10
+              focus:outline-none focus:ring-2 focus:ring-yellow-500
+              max-[1024px]:px-8 max-[1024px]:text-[16px]
+              max-[768px]:w-[22rem] max-[768px]:px-6 max-[768px]:py-3 max-[768px]:border-[3px]
+              max-[480px]:w-full
+            "
           >
-            <option value="" className="bg-real-estate-primary text-white">Dhomat</option>
-            <option value="1" className="bg-real-estate-primary text-white">1</option>
-            <option value="2" className="bg-real-estate-primary text-white">2</option>
-            <option value="3" className="bg-real-estate-primary text-white">3</option>
-            <option value="4" className="bg-real-estate-primary text-white">4</option>
-            <option value="5" className="bg-real-estate-primary text-white">5</option>
-            <option value="6" className="bg-real-estate-primary text-white">6</option>
-            <option value="7" className="bg-real-estate-primary text-white">7</option>
-            <option value="8+" className="bg-real-estate-primary text-white">8+</option>
+            <option className="bg-[#0a4834] text-white" value="">
+              Dhomat
+            </option>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <option
+                key={n}
+                value={String(n)}
+                className="bg-[#0a4834] text-white"
+              >
+                {n}
+              </option>
+            ))}
+            <option value="8+" className="bg-[#0a4834] text-white">
+              8+
+            </option>
           </select>
 
-          <button 
+          {/* Search button */}
+          <button
             onClick={handleSearch}
-            className="bg-real-estate-primary text-yellow-600 font-text font-bold text-lg md:text-xl px-8 py-2 border-none rounded cursor-pointer transition-all hover:bg-real-estate-primary/80 hover:text-yellow-500"
+            className="
+              bg-[#0a4834] text-[#9f8151] font-text font-bold
+              text-lg md:text-xl px-10 py-2 rounded transition-all
+              hover:bg-[#073627] hover:text-[#d4b505]
+              focus:outline-none focus:ring-2 focus:ring-yellow-500
+              max-[768px]:w-[22rem] max-[768px]:py-3
+              max-[480px]:w-full
+            "
           >
             Kerko
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

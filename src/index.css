@@ -1,9 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@font-face {
+  font-family: "Title"; /* Name you will use in CSS */
+  src: url("../public/fonts/FrizQuadrataNo.2W01.ttf") format("truetype"); /* Path corrected */
+  font-weight: 100;
+  font-style: normal;
+}
 
+/* MB PictureHouse One W01 - Regular */
+@font-face {
+  font-family: "Text";
+  src: url("../public/fonts/MBPictureHouseOneW01Regular.ttf") format("truetype"); /* Path corrected */
+  font-weight: 700; /* Bold weight */
+  font-style: normal;
+}
+
+/* MIROLES - Regular Italic */
+@font-face {
+  font-family: "Logo";
+  src: url("../public/fonts/MIROLES400.ttf") format("truetype"); /* Path corrected */
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Madani Arabic Variable */
+@font-face {
+  font-family: "FilterProperty";
+  src: url("../public/fonts/MadaniArabicVariable.ttf") format("truetype"); /* Added file extension */
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "quickdsand";
+  src: url("../public/fonts/Quicksand-Light.ttf") format("truetype"); /* Added file extension */
+  font-weight: 400;
+  font-style: italic;
+}
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -41,11 +76,11 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     /* Real Estate Theme Colors */
-    --real-estate-primary: 144 70% 16%;        /* Deep forest green #0a4834 */
-    --real-estate-secondary: 45 65% 49%;       /* Warm gold #c9ab03 */
-    --real-estate-accent: 41 93% 82%;          /* Light cream #ebe1cf */
-    --real-estate-dark: 0 0% 16%;             /* Dark gray #292929 */
-    --real-estate-light: 210 29% 97%;         /* Light background #f8f8f8 */
+    --real-estate-primary: 144 70% 16%; /* Deep forest green #0a4834 */
+    --real-estate-secondary: 45 65% 49%; /* Warm gold #c9ab03 */
+    --real-estate-accent: 41 93% 82%; /* Light cream #ebe1cf */
+    --real-estate-dark: 0 0% 16%; /* Dark gray #292929 */
+    --real-estate-light: 210 29% 97%; /* Light background #f8f8f8 */
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;

@@ -1,12 +1,15 @@
 import React from "react";
-import aboutImage from "../assets/about-us.jpg";
+import aboutImage from "../assets/about-us.jpg.png";
 
 const AboutSection = () => {
   return (
     <div className="max-w-6xl mx-auto my-12 px-5">
       <div className="flex flex-col lg:flex-row items-center gap-8">
         {/* Image Column - Reversed on smaller screens */}
-        <div className="lg:w-1/5 order-2 lg:order-2">
+        <div
+          className="lg:w-2-7
+ order-2 lg:order-2"
+        >
           <img
             src={aboutImage}
             alt="About Realo Real Estate"
@@ -20,7 +23,7 @@ const AboutSection = () => {
             <div className="mb-6">
               <div className="flex items-baseline gap-3 mb-4">
                 <h2 className="font-title text-3xl font-bold relative">
-                  Rreth
+                  RRETH
                   <span className="absolute -bottom-3 left-0 w-16 h-0.5 bg-black"></span>
                 </h2>
                 <div className="font-title text-real-estate-secondary font-black flex items-center gap-1">
@@ -50,7 +53,9 @@ const AboutSection = () => {
               është zgjedhja e parë për ata që kërkojnë cilësi, përkujdesje dhe
               sukses në çdo bashkëpunim mes nesh!
             </p>
-            <h5 className="font-text text-lg font-medium">Prona juaj, Prioriteti jonë!</h5>
+            <h5 className="font-text text-lg font-medium">
+              Prona juaj, Prioriteti jonë!
+            </h5>
           </div>
         </div>
       </div>
