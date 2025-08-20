@@ -6,7 +6,7 @@ const AboutSection = () => {
     <div className="max-w-6xl mx-auto my-12 px-5">
       <div className="flex flex-col lg:flex-row items-center gap-8">
         {/* Image Column - Reversed on smaller screens */}
-        <div className="lg:w-1/2 order-2 lg:order-2">
+        <div className="lg:w-1/5 order-2 lg:order-2">
           <img
             src={aboutImage}
             alt="About Realo Real Estate"
