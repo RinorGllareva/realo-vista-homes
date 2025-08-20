@@ -17,6 +17,7 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
   const [search, setSearch] = useState("");
   const [isActiveSell, setIsActiveSell] = useState(false);
   const [isActiveRent, setIsActiveRent] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const navigate = useNavigate();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,14 +54,12 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
   };
 
   const handlePropertyTypeFilter = (type: string) => {
-    setSelectedPropertyType(prevType => {
-      const newType = prevType === type ? null : type;
-      setFilters((prevFilters: any) => ({
-        ...prevFilters,
-        propertyType: newType,
-      }));
-      return newType;
-    });
+    const newType = selectedPropertyType === type ? null : type;
+    setSelectedPropertyType(newType);
+    setFilters((prevFilters: any) => ({
+      ...prevFilters,
+      propertyType: newType,
+    }));
   };
 
   const handleRedirect = () => navigate("/contact-us");
@@ -82,10 +81,11 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
       <div className="flex justify-between items-center bg-real-estate-primary px-5 py-3">
         <div className="flex items-center gap-2 cursor-pointer" onClick={handleHomeRedirect}>
           <img src={logoImage} alt="Real Estate Logo" className="w-32" />
-          <h3 className="font-title text-lg text-real-estate-secondary">REAL-ESTATE</h3>
+          <h3 className="font-title text-lg text-real-estate-secondary hidden md:block lg:block">REAL-ESTATE</h3>
         </div>
 
-        <div className="relative flex-1 max-w-md mx-8">
+        {/* Desktop Search */}
+        <div className="relative flex-1 max-w-md mx-8 hidden md:block">
           <input
             type="search"
             placeholder="Kërko..."
@@ -96,18 +96,46 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
           <GoSearch className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
         </div>
 
+        {/* Mobile Search Toggle */}
+        <div className="md:hidden">
+          <button 
+            onClick={() => setShowMobileSearch(!showMobileSearch)}
+            className="p-2 text-real-estate-secondary hover:text-white transition-colors"
+          >
+            <GoSearch className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Desktop Action Button */}
         <button
           onClick={handleRedirect}
           className="bg-real-estate-dark hover:bg-real-estate-secondary text-real-estate-secondary hover:text-real-estate-primary 
-                     border border-real-estate-secondary rounded-full px-6 py-2 font-medium transition-colors"
+                     border border-real-estate-secondary rounded-full px-6 py-2 font-medium transition-colors hidden md:block"
         >
           Ofroni Pronën Tuaj
         </button>
       </div>
 
+      {/* Mobile Search Bar */}
+      {showMobileSearch && (
+        <div className="bg-real-estate-primary px-5 py-3 md:hidden">
+          <div className="relative">
+            <input
+              type="search"
+              placeholder="Kërko..."
+              value={search}
+              onChange={handleSearchChange}
+              className="w-full pl-4 pr-12 py-2 rounded-full border border-border bg-background text-foreground"
+            />
+            <GoSearch className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+          </div>
+        </div>
+      )}
+
       {/* Bottom Header */}
       <div className="flex justify-between items-center bg-muted px-5 py-4">
-        <div className="flex gap-4">
+        {/* Sell/Rent buttons - only on desktop */}
+        <div className="hidden lg:flex gap-4">
           <button
             onClick={handleSellButtonClick}
             className={`px-6 py-2 rounded-full font-medium transition-all ${
@@ -130,6 +158,9 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
           </button>
         </div>
 
+        {/* Spacer for mobile/tablet */}
+        <div className="lg:hidden"></div>
+
         <div className="flex gap-6">
           {propertyTypes.map(({ type, icon, label }) => (
             <div
@@ -147,7 +178,7 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
           ))}
         </div>
 
-        <div className="flex gap-4">
+        <div className="hidden lg:flex gap-4">
           <button className="flex items-center gap-2 px-6 py-2 bg-background border border-border rounded-full hover:bg-accent transition-colors">
             <IoFilterOutline />
             Filter
