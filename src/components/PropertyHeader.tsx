@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiHome } from "react-icons/fi";
-import { PiBuildingOffice, PiWarehouse, PiBuildingApartment } from "react-icons/pi";
+import PriceFilter from "./PriceFilter";
+import AreaFilter from "./AreaFilter";
+import {
+  PiBuildingOffice,
+  PiWarehouse,
+  PiBuildingApartment,
+} from "react-icons/pi";
 import { BsShopWindow } from "react-icons/bs";
 import { TbBuildingSkyscraper, TbChartArea } from "react-icons/tb";
 import { GoSearch } from "react-icons/go";
@@ -13,7 +19,9 @@ interface PropertyHeaderProps {
 }
 
 const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
-  const [selectedPropertyType, setSelectedPropertyType] = useState<string | null>(null);
+  const [selectedPropertyType, setSelectedPropertyType] = useState<
+    string | null
+  >(null);
   const [search, setSearch] = useState("");
   const [isActiveSell, setIsActiveSell] = useState(false);
   const [isActiveRent, setIsActiveRent] = useState(false);
@@ -30,7 +38,7 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
   };
 
   const handleSellButtonClick = () => {
-    setIsActiveSell(prev => {
+    setIsActiveSell((prev) => {
       const newState = !prev;
       setIsActiveRent(false);
       setFilters((prevFilters: any) => ({
@@ -42,7 +50,7 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
   };
 
   const handleRentButtonClick = () => {
-    setIsActiveRent(prev => {
+    setIsActiveRent((prev) => {
       const newState = !prev;
       setIsActiveSell(false);
       setFilters((prevFilters: any) => ({
@@ -59,6 +67,22 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
     setFilters((prevFilters: any) => ({
       ...prevFilters,
       propertyType: newType,
+    }));
+  };
+
+  const applyPriceFilter = (minPrice, maxPrice) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
+    }));
+  };
+
+  const applyAreaFilter = (minArea, maxArea) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      minArea: minArea || undefined,
+      maxArea: maxArea || undefined,
     }));
   };
 
@@ -79,9 +103,14 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
     <div className="fixed top-0 left-0 w-full z-50 bg-background border-b border-border">
       {/* Top Header */}
       <div className="flex justify-between items-center bg-real-estate-primary px-5 py-3">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={handleHomeRedirect}>
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={handleHomeRedirect}
+        >
           <img src={logoImage} alt="Real Estate Logo" className="w-32" />
-          <h3 className="font-title text-lg text-real-estate-secondary hidden md:block lg:block">REAL-ESTATE</h3>
+          <h3 className="font-title text-lg text-real-estate-secondary hidden md:block lg:block">
+            REAL-ESTATE
+          </h3>
         </div>
 
         {/* Desktop Search */}
@@ -98,7 +127,7 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
 
         {/* Mobile Search Toggle */}
         <div className="md:hidden">
-          <button 
+          <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
             className="p-2 text-real-estate-secondary hover:text-white transition-colors"
           >
@@ -133,22 +162,22 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
       )}
 
       {/* Bottom Header */}
-      <div className="flex justify-between items-center bg-muted px-5 py-4">
+      <div className="flex justify-between items-center bg-muted px-5 py-4 max-[400px]:px-0 py-0">
         {/* Sell/Rent buttons - only on desktop */}
-        <div className="hidden lg:flex gap-4">
+        <div className="hidden md:flex gap-4">
           <button
             onClick={handleSellButtonClick}
-            className={`px-6 py-2 rounded-full font-medium transition-all ${
+            className={`border-gray-400 px-6 py-2 rounded-full font-medium transition-all max-[400px]:px-0${
               isActiveSell
                 ? "bg-orange-500 text-white border-orange-500"
-                : "bg-background text-foreground border border-border hover:bg-accent"
+                : "bg-background text-foreground border border-border hover:bg-accent "
             }`}
           >
             Në Shitje
           </button>
           <button
             onClick={handleRentButtonClick}
-            className={`px-6 py-2 rounded-full font-medium transition-all ${
+            className={`border-gray-400 px-6 py-2 rounded-full font-medium transition-all ${
               isActiveRent
                 ? "bg-real-estate-secondary text-white border-real-estate-secondary"
                 : "bg-background text-foreground border border-border hover:bg-accent"
@@ -159,30 +188,59 @@ const PropertyHeader: React.FC<PropertyHeaderProps> = ({ setFilters }) => {
         </div>
 
         {/* Spacer for mobile/tablet */}
-        <div className="lg:hidden"></div>
 
-        <div className="flex gap-6">
-          {propertyTypes.map(({ type, icon, label }) => (
-            <div
-              key={type}
-              onClick={() => handlePropertyTypeFilter(type)}
-              className={`flex flex-col items-center cursor-pointer p-3 rounded-lg transition-all ${
-                selectedPropertyType === type
-                  ? "bg-accent shadow-md transform -translate-y-1"
-                  : "hover:bg-accent/50 hover:transform hover:-translate-y-1"
-              }`}
-            >
-              <span className="text-2xl mb-1">{icon}</span>
-              <p className="text-sm font-medium">{label}</p>
-            </div>
-          ))}
+        <div className="">
+          <div
+            className="
+            flex items-center justify-between
+            bg-transparent rounded-lg px-4 py-3
+            transition-all max-[400px]:px-0 py-2
+    "
+          >
+            {propertyTypes.map(({ type, icon, label }) => {
+              const isSelected = selectedPropertyType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handlePropertyTypeFilter(type)}
+                  aria-pressed={isSelected}
+                  className={`
+            flex flex-col items-center justify-center 
+             px-3 py-2 sm:px-4 sm:py-3
+            transition-all
+            ${
+              isSelected
+                ? "bg-accent text-accent-foreground border-transparent shadow-md ring-1 ring-accent/60 -translate-y-0.5"
+                : "bg-transparent border-gray-200 hover:bg-accent/40 hover:ring-1 hover:ring-accent/40 hover:-translate-y-0.5"
+            }
+          `}
+                >
+                  <span className="mb-1 text-xl sm:text-2xl md:text-3xl leading-none">
+                    {icon}
+                  </span>
+                  <span
+                    className="
+              text-[11px] sm:text-sm md:text-base font-medium
+              text-center leading-tight
+            "
+                  >
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="hidden lg:flex gap-4">
-          <button className="flex items-center gap-2 px-6 py-2 bg-background border border-border rounded-full hover:bg-accent transition-colors">
-            <IoFilterOutline />
-            Filter
-          </button>
+        <div className="filter-options-component flex items-center gap-9 px-6 py-4 bg-transparent">
+          <div className="hidden lg:block">
+            <AreaFilter applyAreaFilter={applyAreaFilter} />
+          </div>
+
+          <div className="hidden lg:block">
+            <PriceFilter applyPriceFilter={applyPriceFilter} />
+          </div>
         </div>
       </div>
     </div>

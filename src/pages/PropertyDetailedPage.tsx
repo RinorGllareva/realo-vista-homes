@@ -81,7 +81,7 @@ const PropertyDetailedPage = () => {
         console.error("Error fetching property data:", error);
       }
     };
-    
+
     if (id) {
       fetchPropertyData();
     }
@@ -92,7 +92,9 @@ const PropertyDetailedPage = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading property details...</p>
+          <p className="mt-4 text-muted-foreground">
+            Loading property details...
+          </p>
         </div>
       </div>
     );
@@ -117,7 +119,7 @@ const PropertyDetailedPage = () => {
 
   const renderIcons = () => {
     const type = property.propertyType?.toLowerCase();
-    
+
     switch (type) {
       case "house":
         return (
@@ -215,14 +217,14 @@ const PropertyDetailedPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       {/* Property Header */}
       <div className="pt-40 px-4 md:px-16 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-baseline mb-4">
-          <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+          <h1 className="text-2xl md:text-4xl font-filter text-foreground">
             {property.title}, {property.city}
           </h1>
-          <p className="text-2xl md:text-3xl font-bold text-real-estate-secondary mt-2 md:mt-0">
+          <p className="text-2xl md:text-3xl font-filter font-bold text-real-estate-secondary mt-2 md:mt-0">
             €{property.price.toLocaleString()}
           </p>
         </div>
@@ -239,7 +241,7 @@ const PropertyDetailedPage = () => {
               <img
                 src={image.imageUrl}
                 alt={`Property ${index + 1}`}
-                className="w-full h-96 md:h-[500px] object-cover cursor-pointer"
+                className="w-full h-76 md:h-[500px] object-cover cursor-pointer"
                 onClick={() => handleImageClick(index)}
               />
             </div>
@@ -269,10 +271,12 @@ const PropertyDetailedPage = () => {
               alt={`Property ${photoIndex + 1}`}
               className="w-full h-auto max-h-[80vh] object-contain"
             />
-            
+
             {/* Navigation arrows */}
             <button
-              onClick={() => setPhotoIndex((photoIndex + images.length - 1) % images.length)}
+              onClick={() =>
+                setPhotoIndex((photoIndex + images.length - 1) % images.length)
+              }
               className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full text-2xl transition-colors"
             >
               <IoIosArrowBack />
@@ -283,7 +287,7 @@ const PropertyDetailedPage = () => {
             >
               <IoIosArrowForward />
             </button>
-            
+
             {/* Image counter */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded">
               {photoIndex + 1} / {images.length}
@@ -294,19 +298,22 @@ const PropertyDetailedPage = () => {
 
       {/* Navigation Bar */}
       <div className="bg-slate-600 text-white px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4 -mt-8 relative z-20">
-        <Button 
+        <Button
           onClick={handleContactClick}
-          className="bg-real-estate-secondary hover:bg-real-estate-secondary/90 text-black font-bold"
+          className="bg-real-estate-secondary hover:bg-real-estate-secondary/90 text-black font-title font-bold"
         >
           Book A Viewing
         </Button>
-        <div className="flex gap-4 md:gap-8 text-sm md:text-base">
-          <a href="#details" className="hover:text-real-estate-secondary transition-colors">
+        <div className="flex gap-4 md:gap-8 text-sm md:text-base font-text">
+          <a
+            href="#details"
+            className="hover:text-real-estate-secondary transition-colors"
+          >
             DETAJET
           </a>
           {property.interiorVideo && (
-            <a 
-              href="#virtual-tour" 
+            <a
+              href="#virtual-tour"
               onClick={scrollToVirtualTour}
               className="hover:text-real-estate-secondary transition-colors cursor-pointer"
             >
@@ -322,56 +329,76 @@ const PropertyDetailedPage = () => {
           {/* Description */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+              <h2 className="text-2xl md:text-3xl font-logo font-bold text-foreground mb-4">
                 Informatat e Pronës
               </h2>
               <hr className="border-gray-300 mb-4" />
-              <p className="text-muted-foreground leading-relaxed mb-6">
+              <p className="text-muted-foreground leading-relaxed mb-6 font-text">
                 {property.description || "No description available."}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-text">
               <div className="space-y-3">
-                {property.address && property.city && property.state && property.zipCode && (
-                  <p>
-                    <strong className="text-foreground">Adresa:</strong>{" "}
-                    {property.address}, {property.city}, {property.state}, {property.zipCode}
-                  </p>
-                )}
+                {property.address &&
+                  property.city &&
+                  property.state &&
+                  property.zipCode && (
+                    <p>
+                      <strong className="text-foreground">Adresa:</strong>{" "}
+                      {property.address}, {property.city}, {property.state},{" "}
+                      {property.zipCode}
+                    </p>
+                  )}
                 {property.bedrooms && (
                   <p>
-                    <strong className="text-foreground">Dhomat:</strong> {property.bedrooms}
+                    <strong className="text-foreground">Dhomat:</strong>{" "}
+                    {property.bedrooms}
                     {property.bathrooms && (
                       <>
                         {" | "}
-                        <strong className="text-foreground">Banjot:</strong> {property.bathrooms}
+                        <strong className="text-foreground">
+                          Banjot:
+                        </strong>{" "}
+                        {property.bathrooms}
                       </>
                     )}
                   </p>
                 )}
                 {property.squareFeet && (
                   <p>
-                    <strong className="text-foreground">Siperfaqja:</strong> {property.squareFeet} m²
+                    <strong className="text-foreground">Siperfaqja:</strong>{" "}
+                    {property.squareFeet} m²
                   </p>
                 )}
-                {property.orientation && property.orientation !== "N/A" && property.orientation !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Orientimi:</strong> {property.orientation}
-                  </p>
-                )}
-                {property.heatingSystem && property.heatingSystem !== "N/A" && property.heatingSystem !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Sistemi i Ngrohjes:</strong> {property.heatingSystem}
-                  </p>
-                )}
-                {property.furniture && property.furniture !== "N/A" && property.furniture !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Mobile:</strong> {property.furniture}
-                  </p>
-                )}
+                {property.orientation &&
+                  property.orientation !== "N/A" &&
+                  property.orientation !== "string" && (
+                    <p>
+                      <strong className="text-foreground">Orientimi:</strong>{" "}
+                      {property.orientation}
+                    </p>
+                  )}
+                {property.heatingSystem &&
+                  property.heatingSystem !== "N/A" &&
+                  property.heatingSystem !== "string" && (
+                    <p>
+                      <strong className="text-foreground">
+                        Sistemi i Ngrohjes:
+                      </strong>{" "}
+                      {property.heatingSystem}
+                    </p>
+                  )}
+                {property.furniture &&
+                  property.furniture !== "N/A" &&
+                  property.furniture !== "string" && (
+                    <p>
+                      <strong className="text-foreground">Mobile:</strong>{" "}
+                      {property.furniture}
+                    </p>
+                  )}
               </div>
-              
+
               <div className="space-y-3">
                 {property.hasOwnershipDocument !== undefined && (
                   <p>
@@ -379,36 +406,58 @@ const PropertyDetailedPage = () => {
                     {property.hasOwnershipDocument ? "Po" : "Jo"}
                   </p>
                 )}
-                {property.floorLevel && property.floorLevel !== "N/A" && property.floorLevel !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Kati:</strong> {property.floorLevel}
-                  </p>
-                )}
-                {property.neighborhood && property.neighborhood !== "N/A" && property.neighborhood !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Lagjia:</strong> {property.neighborhood}
-                  </p>
-                )}
-                {property.builder && property.builder !== "N/A" && property.builder !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Ndertuesit:</strong> {property.builder}
-                  </p>
-                )}
-                {property.complex && property.complex !== "N/A" && property.complex !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Kompleksi Banesor:</strong> {property.complex}
-                  </p>
-                )}
-                {property.country && property.country !== "N/A" && property.country !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Shteti:</strong> {property.country}
-                  </p>
-                )}
-                {property.additionalFeatures && property.additionalFeatures !== "N/A" && property.additionalFeatures !== "string" && (
-                  <p>
-                    <strong className="text-foreground">Vecori të Tjera:</strong> {property.additionalFeatures}
-                  </p>
-                )}
+                {property.floorLevel &&
+                  property.floorLevel !== "N/A" &&
+                  property.floorLevel !== "string" && (
+                    <p>
+                      <strong className="text-foreground">Kati:</strong>{" "}
+                      {property.floorLevel}
+                    </p>
+                  )}
+                {property.neighborhood &&
+                  property.neighborhood !== "N/A" &&
+                  property.neighborhood !== "string" && (
+                    <p>
+                      <strong className="text-foreground">Lagjia:</strong>{" "}
+                      {property.neighborhood}
+                    </p>
+                  )}
+                {property.builder &&
+                  property.builder !== "N/A" &&
+                  property.builder !== "string" && (
+                    <p>
+                      <strong className="text-foreground">Ndertuesit:</strong>{" "}
+                      {property.builder}
+                    </p>
+                  )}
+                {property.complex &&
+                  property.complex !== "N/A" &&
+                  property.complex !== "string" && (
+                    <p>
+                      <strong className="text-foreground">
+                        Kompleksi Banesor:
+                      </strong>{" "}
+                      {property.complex}
+                    </p>
+                  )}
+                {property.country &&
+                  property.country !== "N/A" &&
+                  property.country !== "string" && (
+                    <p>
+                      <strong className="text-foreground">Shteti:</strong>{" "}
+                      {property.country}
+                    </p>
+                  )}
+                {property.additionalFeatures &&
+                  property.additionalFeatures !== "N/A" &&
+                  property.additionalFeatures !== "string" && (
+                    <p>
+                      <strong className="text-foreground">
+                        Vecori të Tjera:
+                      </strong>{" "}
+                      {property.additionalFeatures}
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -420,7 +469,9 @@ const PropertyDetailedPage = () => {
               width="100%"
               height="100%"
               frameBorder="0"
-              src={`https://www.google.com/maps?q=${property.latitude || 42.6629},${property.longitude || 21.1655}&z=15&output=embed`}
+              src={`https://www.google.com/maps?q=${
+                property.latitude || 42.6629
+              },${property.longitude || 21.1655}&z=15&output=embed`}
               allowFullScreen
               className="w-full h-full"
             />
