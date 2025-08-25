@@ -74,7 +74,7 @@ const PropertyDetailedPage = () => {
     const fetchPropertyData = async () => {
       try {
         const response = await axios.get(
-          `https://realo-realestate.com/api/api/Property/GetProperty/${id}`
+          `hhttps://api.realo-realestate.com/api/Property/GetProperty/${id}`
         );
         setProperty(response.data);
       } catch (error) {

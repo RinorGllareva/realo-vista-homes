@@ -95,7 +95,7 @@ const EditProperty = () => {
     const fetchProperty = async () => {
       try {
         const res = await fetch(
-          `https://realo-realestate.com/api/api/Property/GetProperty/${id}`
+          `https://api.realo-realestate.com/api/Property/GetProperty/${id}`
         );
         if (!res.ok) throw new Error("Failed to fetch property");
         const data = await res.json();

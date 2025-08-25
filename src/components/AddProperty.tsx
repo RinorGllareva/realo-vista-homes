@@ -94,7 +94,7 @@ const AddProperty = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        "https://realo-realestate.com/api/api/Property/PostProperty",
+        "https://api.realo-realestate.com/api/Property/PostProperty",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

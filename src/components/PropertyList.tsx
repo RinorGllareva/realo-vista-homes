@@ -49,7 +49,7 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
     const fetchProperties = async () => {
       try {
         const response = await axios.get(
-          "https://realo-realestate.com/api/api/Property/GetProperties"
+          "https://api.realo-realestate.com/api/Property/GetProperties"
         );
         setProperties(response.data || []);
         setFilteredProperties(response.data || []);
@@ -129,13 +129,17 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
 
     if (filters.minArea) {
       filteredData = filteredData.filter(
-        (property) => property.squareFeet && property.squareFeet >= parseInt(filters.minArea)
+        (property) =>
+          property.squareFeet &&
+          property.squareFeet >= parseInt(filters.minArea)
       );
     }
 
     if (filters.maxArea) {
       filteredData = filteredData.filter(
-        (property) => property.squareFeet && property.squareFeet <= parseInt(filters.maxArea)
+        (property) =>
+          property.squareFeet &&
+          property.squareFeet <= parseInt(filters.maxArea)
       );
     }
 

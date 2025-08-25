@@ -122,7 +122,7 @@ const ManageImages: React.FC = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://realo-realestate.com/api/api/Property/GetPropertyImages/${id}/images`
+        `https://api.realo-realestate.com/api/Property/GetPropertyImages/${id}/images`
       );
       if (!response.ok) throw new Error("Failed to fetch images");
       const data = await response.json();
@@ -173,7 +173,7 @@ const ManageImages: React.FC = () => {
     try {
       setAdding(true);
       const response = await fetch(
-        `https://realo-realestate.com/api/api/Property/AddPropertyImage/${id}/images`,
+        `https://api.realo-realestate.com/api/Property/AddPropertyImage/${id}/images`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -214,7 +214,7 @@ const ManageImages: React.FC = () => {
 
     try {
       const response = await fetch(
-        `https://realo-realestate.com/api/api/Property/DeletePropertyImage/${id}/images/${imageId}`,
+        `https://api.realo-realestate.com/api/Property/DeletePropertyImage/${id}/images/${imageId}`,
         { method: "DELETE" }
       );
 

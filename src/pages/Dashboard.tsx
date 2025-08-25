@@ -82,7 +82,7 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const res = await fetch(
-        "https://realo-realestate.com/api/api/Property/GetProperties"
+        "https://api.realo-realestate.com/api/Property/GetProperties"
       );
       if (!res.ok) throw new Error("Failed to fetch properties");
       const data = await res.json();
@@ -108,7 +108,7 @@ const Dashboard = () => {
     if (!propertyToDelete) return;
     try {
       const res = await fetch(
-        `https://realo-realestate.com/api/api/Property/DeleteProperty/${propertyToDelete}`,
+        `https://api.realo-realestate.com/api/Property/DeleteProperty/${propertyToDelete}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error("Failed to delete property");

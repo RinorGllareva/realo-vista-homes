@@ -22,6 +22,16 @@ interface Property {
   images?: Array<{ imageUrl: string }>;
 }
 
+const normalizeToArray = (raw: any): Property[] => {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== "object") return [];
+  if (Array.isArray(raw.data)) return raw.data;
+  if (Array.isArray(raw.result)) return raw.result;
+  if (Array.isArray(raw.items)) return raw.items;
+  if (Array.isArray(raw.$values)) return raw.$values; // .NET
+  return [];
+};
+
 const PropertyPreview: React.FC = () => {
   const navigate = useNavigate();
   const trackRef = useRef<HTMLDivElement>(null);
@@ -30,12 +40,13 @@ const PropertyPreview: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await axios.get(
-          "https://realo-realestate.com/api/api/Property/GetProperties"
+        const { data: raw } = await axios.get(
+          "https://api.realo-realestate.com/api/Property/GetProperties"
         );
-        setProperties(data || []);
+        setProperties(normalizeToArray(raw));
       } catch (e) {
         console.error("Error fetching properties:", e);
+        setProperties([]);
       }
     })();
   }, []);
@@ -70,7 +81,6 @@ const PropertyPreview: React.FC = () => {
   const openDetail = (p: Property) =>
     navigate(`/properties/${p.title}/${p.propertyId}`);
 
-  // Small helper to render a vertical icon+label
   const spec = (icon: React.ReactNode, label: string) => (
     <div className="flex flex-col items-center justify-start w-1/4 min-w-[56px]">
       <div className="text-[1.15rem] text-[#666]">{icon}</div>
@@ -79,6 +89,8 @@ const PropertyPreview: React.FC = () => {
       </span>
     </div>
   );
+
+  const list = Array.isArray(properties) ? properties : [];
 
   return (
     <section className="relative bg-[#ebe1cf] px-5 py-10 overflow-hidden">
@@ -106,7 +118,7 @@ const PropertyPreview: React.FC = () => {
       <button
         onClick={scrollRight}
         aria-label="Scroll right"
-        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg黑/50 hover:bg黑/70 text-white p-2 text-2xl z-30 transition"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 hover:bg-black/70 text-white p-2 text-2xl z-30 transition"
       >
         <IoIosArrowForward />
       </button>
@@ -119,7 +131,7 @@ const PropertyPreview: React.FC = () => {
           [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
         "
       >
-        {properties.map((p) => {
+        {list.map((p) => {
           const type = p.propertyType?.toLowerCase?.();
 
           return (
@@ -172,7 +184,7 @@ const PropertyPreview: React.FC = () => {
                   €{(p.price ?? 0).toLocaleString()}
                 </p>
 
-                {/* icons grid: icons on top, numbers+labels below */}
+                {/* icons grid */}
                 <div className="mt-3 flex flex-wrap justify-between gap-0">
                   {type === "house" || type === "apartment" ? (
                     <>
