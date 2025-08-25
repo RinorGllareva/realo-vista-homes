@@ -36,20 +36,14 @@ interface SortableImageProps {
 }
 
 const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: image.imageId });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: image.imageId });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
-  } as React.CSSProperties;
+  };
 
   return (
     <div
@@ -63,13 +57,10 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
           alt={`Property ${image.imageId}`}
           className="w-full h-full object-cover"
           onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src =
+            (e.target as HTMLImageElement).src =
               "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%230b1220'/%3E%3Ctext x='200' y='150' text-anchor='middle' dy='0.3em' font-family='system-ui' font-size='14' fill='%238a8fa3'%3EImage not found%3C/text%3E%3C/svg%3E";
           }}
         />
-
-        {/* Drag handle */}
         <div
           {...attributes}
           {...listeners}
@@ -78,8 +69,6 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
         >
           <GripVertical className="h-4 w-4 text-slate-400" />
         </div>
-
-        {/* Delete button */}
         <Button
           size="icon"
           variant="destructive"
@@ -90,7 +79,6 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-
       <div className="px-3 py-2 bg-[#0b1220]/60 border-t border-slate-800">
         <p className="text-xs text-slate-400 truncate">{image.imageUrl}</p>
       </div>
@@ -108,6 +96,9 @@ const ManageImages: React.FC = () => {
   const [adding, setAdding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Use proxy in dev (empty base), domain in prod
+  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -121,12 +112,10 @@ const ManageImages: React.FC = () => {
   const fetchPropertyImages = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `https://api.realo-realestate.com/api/Property/GetPropertyImages/${id}/images`
-      );
-      if (!response.ok) throw new Error("Failed to fetch images");
-      const data = await response.json();
-      setImages(data);
+      const res = await fetch(`${base}/api/Property/GetPropertyImages/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch images");
+      const data = await res.json();
+      setImages(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching property images:", error);
       toast({
@@ -134,7 +123,7 @@ const ManageImages: React.FC = () => {
         description: "Failed to fetch property images. Please try again.",
         variant: "destructive",
       });
-      // Demo fallback
+      // Fallback demo items
       setImages([
         {
           imageId: 1,
@@ -172,16 +161,15 @@ const ManageImages: React.FC = () => {
 
     try {
       setAdding(true);
-      const response = await fetch(
-        `https://api.realo-realestate.com/api/Property/AddPropertyImage/${id}/images`,
+      const res = await fetch(
+        `${base}/api/Property/AddPropertyImage/${id}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newImageUrl),
         }
       );
-
-      if (!response.ok) throw new Error("Failed to add image");
+      if (!res.ok) throw new Error("Failed to add image");
 
       const newImage: PropertyImage = {
         imageId: Date.now(),
@@ -193,6 +181,7 @@ const ManageImages: React.FC = () => {
       toast({ title: "Success", description: "Image added successfully!" });
     } catch (error) {
       console.error("Error adding property image:", error);
+      // Optimistic UI (demo)
       const newImage: PropertyImage = {
         imageId: Date.now(),
         imageUrl: newImageUrl,
@@ -213,12 +202,11 @@ const ManageImages: React.FC = () => {
     if (!confirm("Are you sure you want to delete this image?")) return;
 
     try {
-      const response = await fetch(
-        `https://api.realo-realestate.com/api/Property/DeletePropertyImage/${id}/images/${imageId}`,
+      const res = await fetch(
+        `${base}/api/Property/DeletePropertyImage/${id}/${imageId}`,
         { method: "DELETE" }
       );
-
-      if (!response.ok) throw new Error("Failed to delete image");
+      if (!res.ok) throw new Error("Failed to delete image");
 
       setImages((prev) => prev.filter((img) => img.imageId !== imageId));
       toast({ title: "Success", description: "Image deleted successfully!" });
@@ -252,7 +240,6 @@ const ManageImages: React.FC = () => {
     setNewImageUrl(localUrl);
   };
 
-  // shared dark theme field like in AddProperty
   const field =
     "bg-[#0b1220] text-slate-200 placeholder:text-slate-500 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 
@@ -279,19 +266,15 @@ const ManageImages: React.FC = () => {
           </CardHeader>
         </Card>
 
-        {/* Add Image Section */}
+        {/* Add Image */}
         <Card className="border border-slate-800 bg-[#0f172a]">
           <CardHeader>
-            <CardTitle className="text-lg text-slate-100">
-              Add New Image
-            </CardTitle>
+            <CardTitle className="text-lg text-slate-100">Add New Image</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-6">
             <div className="flex gap-4">
               <div className="flex-1 space-y-2">
-                <Label htmlFor="imageUrl" className="text-slate-300">
-                  Image URL
-                </Label>
+                <Label htmlFor="imageUrl" className="text-slate-300">Image URL</Label>
                 <div className="relative flex gap-2">
                   <Input
                     id="imageUrl"
@@ -323,14 +306,7 @@ const ManageImages: React.FC = () => {
               disabled={adding || !newImageUrl.trim()}
               className="bg-blue-500 hover:bg-blue-500/90 text-white shadow-md rounded-xl"
             >
-              {adding ? (
-                "Adding..."
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Image
-                </>
-              )}
+              {adding ? "Adding..." : (<><Plus className="h-4 w-4 mr-2" />Add Image</>)}
             </Button>
           </CardContent>
         </Card>
@@ -341,22 +317,18 @@ const ManageImages: React.FC = () => {
             <CardTitle className="text-lg text-slate-100">
               Property Images ({images.length})
             </CardTitle>
-            <p className="text-sm text-slate-400">
-              Drag and drop to reorder images
-            </p>
+            <p className="text-sm text-slate-400">Drag and drop to reorder images</p>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
               </div>
             ) : images.length === 0 ? (
               <div className="text-center py-12">
                 <Upload className="h-12 w-12 text-slate-500 mx-auto mb-4" />
                 <p className="text-slate-400">No images found</p>
-                <p className="text-sm text-slate-500">
-                  Add your first image above
-                </p>
+                <p className="text-sm text-slate-500">Add your first image above</p>
               </div>
             ) : (
               <DndContext

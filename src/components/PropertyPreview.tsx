@@ -8,10 +8,10 @@ import { MdSquareFoot, MdMeetingRoom } from "react-icons/md";
 import { SiLevelsdotfyi } from "react-icons/si";
 
 interface Property {
-  propertyId: string;
+  propertyId: string | number;
   title: string;
   city: string;
-  price: number;
+  price: number | string;
   propertyType: string;
   isForSale: boolean;
   bedrooms?: number;
@@ -28,7 +28,7 @@ const normalizeToArray = (raw: any): Property[] => {
   if (Array.isArray(raw.data)) return raw.data;
   if (Array.isArray(raw.result)) return raw.result;
   if (Array.isArray(raw.items)) return raw.items;
-  if (Array.isArray(raw.$values)) return raw.$values; // .NET
+  if (Array.isArray(raw.$values)) return raw.$values; // .NET style
   return [];
 };
 
@@ -37,19 +37,20 @@ const PropertyPreview: React.FC = () => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [properties, setProperties] = useState<Property[]>([]);
 
+  // Use Vite proxy in dev (empty base), real domain in prod
+  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
+
   useEffect(() => {
     (async () => {
       try {
-        const { data: raw } = await axios.get(
-          "https://api.realo-realestate.com/api/Property/GetProperties"
-        );
-        setProperties(normalizeToArray(raw));
+        const response = await axios.get(`${base}/api/Property/GetProperties`);
+        setProperties(normalizeToArray(response.data));
       } catch (e) {
         console.error("Error fetching properties:", e);
         setProperties([]);
       }
     })();
-  }, []);
+  }, [base]);
 
   const getTypeLabel = (t: string) => {
     const map: Record<string, string> = {
@@ -63,20 +64,16 @@ const PropertyPreview: React.FC = () => {
     return map[t?.toLowerCase?.()] || t;
   };
 
-  const scrollLeft = () => {
-    if (!trackRef.current) return;
-    trackRef.current.scrollBy({
+  const scrollLeft = () =>
+    trackRef.current?.scrollBy({
       left: -trackRef.current.clientWidth,
       behavior: "smooth",
     });
-  };
-  const scrollRight = () => {
-    if (!trackRef.current) return;
-    trackRef.current.scrollBy({
+  const scrollRight = () =>
+    trackRef.current?.scrollBy({
       left: trackRef.current.clientWidth,
       behavior: "smooth",
     });
-  };
 
   const openDetail = (p: Property) =>
     navigate(`/properties/${p.title}/${p.propertyId}`);
@@ -126,40 +123,31 @@ const PropertyPreview: React.FC = () => {
       {/* track */}
       <div
         ref={trackRef}
-        className="
-          flex gap-5 pb-5 overflow-x-auto scroll-smooth
-          [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
-        "
+        className="flex gap-5 pb-5 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {list.map((p) => {
           const type = p.propertyType?.toLowerCase?.();
+          const priceNumber =
+            typeof p.price === "string"
+              ? Number(p.price.replace(/[^\d.]/g, ""))
+              : p.price ?? 0;
 
           return (
             <div
-              key={p.propertyId}
+              key={String(p.propertyId)}
               onClick={() => openDetail(p)}
-              className="
-                relative cursor-pointer
-                flex-none
-                basis-[55%] max-w-[300px] min-w-[250px]
-                md:basis-[45%]
-                sm:basis-[60%]
-                max-[450px]:basis-[40%]
-                bg-white border border-gray-200 rounded-[8px]
-                shadow-[0_4px_10px_rgba(0,0,0,0.1)]
-                transition-transform hover:-translate-y-[5px]
-              "
+              className="relative cursor-pointer flex-none basis-[55%] max-w-[300px] min-w-[250px]
+                         md:basis-[45%] sm:basis-[60%] max-[450px]:basis-[40%]
+                         bg-white border border-gray-200 rounded-[8px]
+                         shadow-[0_4px_10px_rgba(0,0,0,0.1)] transition-transform hover:-translate-y-[5px]"
             >
-              {/* SALE/RENT tag */}
               <span className="absolute top-2 left-2 z-20 bg-[#d46905] text-white px-2 py-1 text-[12px] font-bold rounded">
                 {p.isForSale ? "SHITJE" : "QERA"}
               </span>
-              {/* type tag */}
               <span className="absolute top-2 right-2 z-20 bg-[#d4b505] text-white px-2 py-1 text-[12px] font-bold rounded">
                 {getTypeLabel(p.propertyType)}
               </span>
 
-              {/* image */}
               <div className="relative h-[180px] overflow-hidden">
                 <img
                   src={
@@ -172,7 +160,6 @@ const PropertyPreview: React.FC = () => {
                 />
               </div>
 
-              {/* details */}
               <div className="p-[15px] text-left">
                 <h3 className="font-[Montserrat] text-[14px] text-[#888]">
                   {p.city}
@@ -181,10 +168,9 @@ const PropertyPreview: React.FC = () => {
                   {p.title}
                 </p>
                 <p className="font-[Montserrat] text-[20px] text-[#d4b505] font-[200] mt-1">
-                  €{(p.price ?? 0).toLocaleString()}
+                  €{Number(priceNumber || 0).toLocaleString()}
                 </p>
 
-                {/* icons grid */}
                 <div className="mt-3 flex flex-wrap justify-between gap-0">
                   {type === "house" || type === "apartment" ? (
                     <>
@@ -216,16 +202,10 @@ const PropertyPreview: React.FC = () => {
         })}
       </div>
 
-      {/* view more */}
       <div className="mt-8 text-center">
         <button
           onClick={() => navigate("/Property")}
-          className="
-            bg-[#4a5968] hover:bg-[#333] text-white
-            px-5 py-2 rounded
-            font-text text-[1.2rem]
-            transition-colors
-          "
+          className="bg-[#4a5968] hover:bg-[#333] text-white px-5 py-2 rounded font-text text-[1.2rem] transition-colors"
         >
           Shikoni Të Gjitha Pronat
         </button>

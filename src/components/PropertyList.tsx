@@ -44,13 +44,15 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
     navigate(`/properties/${property.title}/${property.propertyId}`);
   };
 
+  const base = import.meta.env.PROD
+    ? "https://api.realo-realestate.com" // production
+    : ""; // dev: use proxy
+
   // Fetch all properties from API
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const response = await axios.get(
-          "https://api.realo-realestate.com/api/Property/GetProperties"
-        );
+        const response = await axios.get(`${base}/api/Property/GetProperties`);
         setProperties(response.data || []);
         setFilteredProperties(response.data || []);
       } catch (error) {

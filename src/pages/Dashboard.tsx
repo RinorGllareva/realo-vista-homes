@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,15 +79,15 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
+  // Use Vite proxy in dev (empty base), real domain in prod
+  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
+
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        "https://api.realo-realestate.com/api/Property/GetProperties"
-      );
-      if (!res.ok) throw new Error("Failed to fetch properties");
-      const data = await res.json();
-      setProperties(data);
+      const res = await axios.get(`${base}/api/Property/GetProperties`);
+      // axios already gives parsed data
+      setProperties(res.data?.$values || res.data || []);
     } catch (e) {
       console.error(e);
       toast({
@@ -107,11 +108,9 @@ const Dashboard = () => {
   const confirmDelete = async () => {
     if (!propertyToDelete) return;
     try {
-      const res = await fetch(
-        `https://api.realo-realestate.com/api/Property/DeleteProperty/${propertyToDelete}`,
-        { method: "DELETE" }
+      await axios.delete(
+        `${base}/api/Property/DeleteProperty/${propertyToDelete}`
       );
-      if (!res.ok) throw new Error("Failed to delete property");
       setProperties((prev) =>
         prev.filter((p) => p.propertyId !== propertyToDelete)
       );

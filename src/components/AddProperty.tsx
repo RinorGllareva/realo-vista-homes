@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,34 +89,24 @@ const AddProperty = () => {
   const handleChange = (name: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+  // Use Vite proxy in dev (empty base), real domain in prod
+  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
-      const response = await fetch(
-        "https://api.realo-realestate.com/api/Property/PostProperty",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...formData,
-            price: formData.price, // keep string, backend expects string
-            bedrooms: parseInt(formData.bedrooms) || 0,
-            bathrooms: parseInt(formData.bathrooms) || 0,
-            squareFeet: parseFloat(formData.squareFeet) || 0,
-            spaces: parseInt(formData.spaces) || 0,
-            latitude: parseFloat(formData.latitude) || 0,
-            longitude: parseFloat(formData.longitude) || 0,
-          }),
-        }
-      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error response from server:", errorData);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      await axios.post(`${base}/api/Property/PostProperty`, {
+        ...formData,
+        price: formData.price,
+        bedrooms: parseInt(formData.bedrooms) || 0,
+        bathrooms: parseInt(formData.bathrooms) || 0,
+        squareFeet: parseFloat(formData.squareFeet) || 0,
+        spaces: parseInt(formData.spaces) || 0,
+        latitude: parseFloat(formData.latitude) || 0,
+        longitude: parseFloat(formData.longitude) || 0,
+      });
 
       toast({ title: "Success", description: "Property added successfully!" });
       navigate("/dashboard");

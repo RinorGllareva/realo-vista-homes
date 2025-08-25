@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,6 +88,9 @@ const EditProperty = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Use Vite proxy in dev (empty base), real domain in prod
+  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
+
   // shared dark-field classes
   const field =
     "bg-[#0b1220] text-slate-200 placeholder:text-slate-500 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
@@ -94,11 +98,9 @@ const EditProperty = () => {
   useEffect(() => {
     const fetchProperty = async () => {
       try {
-        const res = await fetch(
-          `https://api.realo-realestate.com/api/Property/GetProperty/${id}`
-        );
-        if (!res.ok) throw new Error("Failed to fetch property");
-        const data = await res.json();
+        // FIX: correct endpoint + axios usage
+        const res = await axios.get(`${base}/api/Property/GetProperty/${id}`);
+        const data = res.data;
 
         setFormData({
           title: data.title ?? "",
@@ -153,29 +155,18 @@ const EditProperty = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await fetch(
-        `https://realo-realestate.com/api/api/Property/PutProperty/${id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...formData,
-            price: formData.price, // keep string
-            bedrooms: parseInt(formData.bedrooms) || 0,
-            bathrooms: parseInt(formData.bathrooms) || 0,
-            squareFeet: parseFloat(formData.squareFeet) || 0,
-            spaces: parseInt(formData.spaces) || 0,
-            latitude: parseFloat(formData.latitude) || 0,
-            longitude: parseFloat(formData.longitude) || 0,
-          }),
-        }
-      );
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error("Update error:", err);
-        throw new Error(`HTTP ${res.status}`);
-      }
+      // FIX: use base + axios.put + correct route
+      await axios.put(`${base}/api/Property/PutProperty/${id}`, {
+        ...formData,
+        price: formData.price, // keep string (your backend accepts string)
+        bedrooms: parseInt(formData.bedrooms) || 0,
+        bathrooms: parseInt(formData.bathrooms) || 0,
+        squareFeet: parseFloat(formData.squareFeet) || 0,
+        spaces: parseInt(formData.spaces) || 0,
+        latitude: parseFloat(formData.latitude) || 0,
+        longitude: parseFloat(formData.longitude) || 0,
+      });
 
       toast({
         title: "Success",

@@ -54,6 +54,9 @@ const PropertyDetailedPage = () => {
   const sliderRef = useRef<Slider>(null);
   const virtualPortRef = useRef<HTMLDivElement>(null);
 
+  // 👇 use proxy in dev (empty base), real domain in prod
+  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
+
   const scrollToVirtualTour = () => {
     virtualPortRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -74,7 +77,7 @@ const PropertyDetailedPage = () => {
     const fetchPropertyData = async () => {
       try {
         const response = await axios.get(
-          `hhttps://api.realo-realestate.com/api/Property/GetProperty/${id}`
+          `${base}/api/Property/GetProperty/${id}`
         );
         setProperty(response.data);
       } catch (error) {
