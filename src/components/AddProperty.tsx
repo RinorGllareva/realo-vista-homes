@@ -17,6 +17,35 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus } from "lucide-react";
 
+/* ---------------- helpers ---------------- */
+const API = (() => {
+  let v = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
+  if (!v || v === "undefined" || v === "null") {
+    v = (import.meta as any)?.env?.PROD
+      ? "https://api.realo-realestate.com"
+      : "";
+  }
+  return v.replace(/\/+$/, "");
+})();
+
+const toInt = (v: string) => {
+  const n = parseInt((v ?? "").toString().replace(/[^\d-]/g, ""), 10);
+  return Number.isFinite(n) ? n : 0;
+};
+const toFloat = (v: string) => {
+  const n = parseFloat((v ?? "").toString().replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
+const trimAll = <T extends Record<string, any>>(obj: T): T => {
+  const out: any = {};
+  for (const k of Object.keys(obj)) {
+    const val = obj[k];
+    out[k] = typeof val === "string" ? val.trim() : val;
+  }
+  return out as T;
+};
+/* ----------------------------------------- */
+
 interface PropertyFormData {
   title: string;
   description: string;
@@ -24,7 +53,7 @@ interface PropertyFormData {
   city: string;
   state: string;
   zipCode: string;
-  propertyType: string;
+  propertyType: string; // Use "House" | "Apartment" | ...
   isForSale: boolean;
   isForRent: boolean;
   price: string;
@@ -57,7 +86,7 @@ const AddProperty = () => {
     city: "",
     state: "",
     zipCode: "",
-    propertyType: "",
+    propertyType: "", // keep empty until chosen
     isForSale: true,
     isForRent: false,
     price: "",
@@ -86,26 +115,54 @@ const AddProperty = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleChange = (name: string, value: string | boolean) => {
+  const handleChange = (
+    name: keyof PropertyFormData,
+    value: string | boolean
+  ) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-  // Use Vite proxy in dev (empty base), real domain in prod
-  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic front-end guardrails
+    if (!formData.title.trim()) {
+      toast({
+        title: "Missing title",
+        description: "Please enter a title.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!formData.propertyType) {
+      toast({
+        title: "Missing property type",
+        description: "Please choose a property type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
-      await axios.post(`${base}/api/Property/PostProperty`, {
-        ...formData,
-        price: formData.price,
-        bedrooms: parseInt(formData.bedrooms) || 0,
-        bathrooms: parseInt(formData.bathrooms) || 0,
-        squareFeet: parseFloat(formData.squareFeet) || 0,
-        spaces: parseInt(formData.spaces) || 0,
-        latitude: parseFloat(formData.latitude) || 0,
-        longitude: parseFloat(formData.longitude) || 0,
+      const clean = trimAll(formData);
+
+      // Build payload with numbers for numeric fields
+      const payload = {
+        ...clean,
+        propertyType: clean.propertyType, // "House" | "Apartment" | ...
+        price: toFloat(clean.price),
+        bedrooms: toInt(clean.bedrooms),
+        bathrooms: toInt(clean.bathrooms),
+        squareFeet: toFloat(clean.squareFeet),
+        spaces: toInt(clean.spaces),
+        latitude: toFloat(clean.latitude),
+        longitude: toFloat(clean.longitude),
+      };
+
+      await axios.post(`${API}/api/Property/PostProperty`, payload, {
+        headers: { "Content-Type": "application/json" },
       });
 
       toast({ title: "Success", description: "Property added successfully!" });
@@ -186,11 +243,14 @@ const AddProperty = () => {
                         <SelectValue placeholder="Select property type" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#0b1220] text-slate-200 border-slate-700">
-                        <SelectItem value="house">House</SelectItem>
-                        <SelectItem value="apartment">Apartment</SelectItem>
-                        <SelectItem value="condo">Condo</SelectItem>
-                        <SelectItem value="townhouse">Townhouse</SelectItem>
-                        <SelectItem value="commercial">Commercial</SelectItem>
+                        {/* Use capitalized values to match filters elsewhere */}
+                        <SelectItem value="House">House</SelectItem>
+                        <SelectItem value="Apartment">Apartment</SelectItem>
+                        <SelectItem value="Land">Land</SelectItem>
+                        <SelectItem value="Store">Store</SelectItem>
+                        <SelectItem value="Warehouse">Warehouse</SelectItem>
+                        <SelectItem value="Building">Building</SelectItem>
+                        <SelectItem value="Office">Office</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -236,7 +296,10 @@ const AddProperty = () => {
                         className={field}
                         value={(formData as any)[key as string]}
                         onChange={(e) =>
-                          handleChange(key as string, e.target.value)
+                          handleChange(
+                            key as keyof PropertyFormData,
+                            e.target.value
+                          )
                         }
                         placeholder={ph as string}
                       />
@@ -315,25 +378,59 @@ const AddProperty = () => {
                   Status & Availability
                 </h3>
                 <div className="flex flex-wrap gap-6">
-                  {[
-                    ["isForSale", "For Sale"],
-                    ["isForRent", "For Rent"],
-                    ["isAvailable", "Available"],
-                    ["hasOwnershipDocument", "Has Ownership Document"],
-                  ].map(([key, label]) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      <Switch
-                        id={key}
-                        checked={(formData as any)[key]}
-                        onCheckedChange={(checked) =>
-                          handleChange(key, checked)
-                        }
-                      />
-                      <Label htmlFor={key} className="text-slate-300">
-                        {label}
-                      </Label>
-                    </div>
-                  ))}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isForSale"
+                      checked={formData.isForSale}
+                      onCheckedChange={(checked) => {
+                        handleChange("isForSale", checked);
+                        if (checked) handleChange("isForRent", false);
+                      }}
+                    />
+                    <Label htmlFor="isForSale" className="text-slate-300">
+                      For Sale
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isForRent"
+                      checked={formData.isForRent}
+                      onCheckedChange={(checked) => {
+                        handleChange("isForRent", checked);
+                        if (checked) handleChange("isForSale", false);
+                      }}
+                    />
+                    <Label htmlFor="isForRent" className="text-slate-300">
+                      For Rent
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isAvailable"
+                      checked={formData.isAvailable}
+                      onCheckedChange={(checked) =>
+                        handleChange("isAvailable", checked)
+                      }
+                    />
+                    <Label htmlFor="isAvailable" className="text-slate-300">
+                      Available
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="hasOwnershipDocument"
+                      checked={formData.hasOwnershipDocument}
+                      onCheckedChange={(checked) =>
+                        handleChange("hasOwnershipDocument", checked)
+                      }
+                    />
+                    <Label
+                      htmlFor="hasOwnershipDocument"
+                      className="text-slate-300"
+                    >
+                      Has Ownership Document
+                    </Label>
+                  </div>
                 </div>
               </section>
 
@@ -360,7 +457,12 @@ const AddProperty = () => {
                         type={(type as string) || "text"}
                         className={field}
                         value={(formData as any)[key]}
-                        onChange={(e) => handleChange(key, e.target.value)}
+                        onChange={(e) =>
+                          handleChange(
+                            key as keyof PropertyFormData,
+                            e.target.value
+                          )
+                        }
                         placeholder={ph as string}
                       />
                     </div>
@@ -394,8 +496,8 @@ const AddProperty = () => {
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                   {[
-                    ["latitude", "Latitude", "40.7128", "number"],
-                    ["longitude", "Longitude", "-74.0060", "number"],
+                    ["latitude", "Latitude", "42.6629", "number"],
+                    ["longitude", "Longitude", "21.1655", "number"],
                     ["exteriorVideo", "Exterior Video URL", "https://..."],
                     ["interiorVideo", "Interior Video URL", "https://..."],
                   ].map(([key, label, ph, type]) => (
@@ -409,7 +511,12 @@ const AddProperty = () => {
                         step={type === "number" ? "any" : undefined}
                         className={field}
                         value={(formData as any)[key]}
-                        onChange={(e) => handleChange(key, e.target.value)}
+                        onChange={(e) =>
+                          handleChange(
+                            key as keyof PropertyFormData,
+                            e.target.value
+                          )
+                        }
                         placeholder={ph as string}
                       />
                     </div>

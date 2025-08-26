@@ -5,11 +5,12 @@ import { ImSortAlphaAsc, ImSortAlphaDesc } from "react-icons/im";
 import { MdSortByAlpha } from "react-icons/md";
 import PropertyCard from "./PropertyCard";
 
-interface Property {
-  propertyId: string;
+// ✅ Rename to avoid clashing with other "Property" types and make id a string
+interface RealoProperty {
+  propertyId: string; // <-- canonical: string
   title: string;
   city: string;
-  price: number;
+  price: number | string; // tolerate string
   propertyType: string;
   isForSale: boolean;
   bedrooms?: number;
@@ -34,125 +35,152 @@ interface PropertyListProps {
   };
 }
 
+/* ---------------- helpers ---------------- */
+const API = (() => {
+  let v = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
+  if (!v || v === "undefined" || v === "null") {
+    v = (import.meta as any)?.env?.PROD
+      ? "https://api.realo-realestate.com"
+      : "";
+  }
+  return v.replace(/\/+$/, "");
+})();
+
+const toArray = <T,>(raw: any): T[] => {
+  if (Array.isArray(raw)) return raw as T[];
+  if (raw && typeof raw === "object") {
+    if (Array.isArray(raw.$values)) return raw.$values as T[];
+    if (Array.isArray(raw.data)) return raw.data as T[];
+    if (Array.isArray(raw.result)) return raw.result as T[];
+    if (Array.isArray(raw.items)) return raw.items as T[];
+  }
+  return [];
+};
+
+const toNumber = (v: number | string | undefined | null) => {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = Number(v.replace?.(/[^\d.]/g, "") ?? v);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  return NaN;
+};
+/* ----------------------------------------- */
+
 const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [properties, setProperties] = useState<RealoProperty[]>([]);
+  const [filteredProperties, setFilteredProperties] = useState<RealoProperty[]>(
+    []
+  );
   const [sortOrder, setSortOrder] = useState(0);
   const navigate = useNavigate();
 
-  const handlePropertyClick = (property: Property) => {
-    navigate(`/properties/${property.title}/${property.propertyId}`);
+  const handlePropertyClick = (property: RealoProperty) => {
+    navigate(
+      `/properties/${encodeURIComponent(property.title)}/${property.propertyId}`
+    );
   };
-
-  const base = import.meta.env.PROD
-    ? "https://api.realo-realestate.com" // production
-    : ""; // dev: use proxy
 
   // Fetch all properties from API
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const response = await axios.get(`${base}/api/Property/GetProperties`);
-        setProperties(response.data || []);
-        setFilteredProperties(response.data || []);
+        const { data } = await axios.get(`${API}/api/Property/GetProperties`, {
+          headers: { Accept: "application/json" },
+        });
+
+        // ✅ Normalize id to string so it matches PropertyCard’s expected type
+        const list = toArray<any>(data).map((p) => ({
+          ...p,
+          propertyId: String(p?.propertyId ?? ""),
+        })) as RealoProperty[];
+
+        setProperties(list);
+        setFilteredProperties(list);
       } catch (error) {
         console.error("Error fetching properties:", error);
+        setProperties([]);
+        setFilteredProperties([]);
       }
     };
     fetchProperties();
   }, []);
 
-  // Sort function
+  // Sort function (0 none, 1 asc, 2 desc)
   const handleSort = () => {
-    let newOrder: number;
-    let newItems: Property[];
-
+    const src = [...filteredProperties];
     if (sortOrder === 0) {
-      newOrder = 1;
-      newItems = [...filteredProperties].sort((a, b) =>
-        String(a.propertyId).localeCompare(String(b.propertyId))
+      setFilteredProperties(
+        src.sort((a, b) =>
+          String(a.propertyId).localeCompare(String(b.propertyId))
+        )
       );
+      setSortOrder(1);
     } else if (sortOrder === 1) {
-      newOrder = 2;
-      newItems = [...filteredProperties].sort((a, b) =>
-        String(b.propertyId).localeCompare(String(a.propertyId))
+      setFilteredProperties(
+        src.sort((a, b) =>
+          String(b.propertyId).localeCompare(String(a.propertyId))
+        )
       );
+      setSortOrder(2);
     } else {
-      newOrder = 0;
-      newItems = [...properties];
+      setFilteredProperties([...properties]);
+      setSortOrder(0);
     }
-
-    setSortOrder(newOrder);
-    setFilteredProperties(newItems);
   };
 
   // Apply filters when they change
   useEffect(() => {
-    let filteredData = properties;
+    let data = [...properties];
 
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filteredData = filteredData.filter(
-        (property) =>
-          property.title.toLowerCase().includes(searchLower) ||
-          property.city.toLowerCase().includes(searchLower)
+    if (filters.search?.trim()) {
+      const q = filters.search.toLowerCase();
+      data = data.filter(
+        (p) =>
+          p.title?.toLowerCase().includes(q) ||
+          p.city?.toLowerCase().includes(q)
       );
     }
 
     if (filters.propertyType) {
-      filteredData = filteredData.filter(
-        (property) => property.propertyType === filters.propertyType
-      );
+      data = data.filter((p) => p.propertyType === filters.propertyType);
     }
 
     if (filters.minPrice) {
-      filteredData = filteredData.filter(
-        (property) => property.price >= parseInt(filters.minPrice)
-      );
+      const min = Number(filters.minPrice);
+      data = data.filter((p) => toNumber(p.price) >= min);
     }
-
     if (filters.maxPrice) {
-      filteredData = filteredData.filter(
-        (property) => property.price <= parseInt(filters.maxPrice)
-      );
+      const max = Number(filters.maxPrice);
+      data = data.filter((p) => toNumber(p.price) <= max);
     }
 
     if (filters.bedrooms) {
-      filteredData = filteredData.filter(
-        (property) => property.bedrooms === parseInt(filters.bedrooms)
-      );
+      const n = Number(filters.bedrooms);
+      data = data.filter((p) => (p.bedrooms ?? -1) === n);
     }
-
     if (filters.bathrooms) {
-      filteredData = filteredData.filter(
-        (property) => property.bathrooms === parseInt(filters.bathrooms)
-      );
+      const n = Number(filters.bathrooms);
+      data = data.filter((p) => (p.bathrooms ?? -1) === n);
     }
 
     if (filters.minArea) {
-      filteredData = filteredData.filter(
-        (property) =>
-          property.squareFeet &&
-          property.squareFeet >= parseInt(filters.minArea)
-      );
+      const minA = Number(filters.minArea);
+      data = data.filter((p) => (p.squareFeet ?? 0) >= minA);
     }
-
     if (filters.maxArea) {
-      filteredData = filteredData.filter(
-        (property) =>
-          property.squareFeet &&
-          property.squareFeet <= parseInt(filters.maxArea)
-      );
+      const maxA = Number(filters.maxArea);
+      data = data.filter((p) => (p.squareFeet ?? 0) <= maxA);
     }
 
     if (filters.isForSale !== null) {
-      filteredData = filteredData.filter(
-        (property) => property.isForSale === filters.isForSale
-      );
+      data = data.filter((p) => p.isForSale === filters.isForSale);
     }
 
-    setFilteredProperties(filteredData);
+    setFilteredProperties(data);
   }, [filters, properties]);
+
+  const list = Array.isArray(filteredProperties) ? filteredProperties : [];
 
   return (
     <div className="pt-40 px-5 pb-10 bg-background min-h-screen">
@@ -175,11 +203,14 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
 
       {/* Property Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
-        {filteredProperties.length > 0 ? (
-          filteredProperties.map((property) => (
+        {list.length > 0 ? (
+          list.map((property) => (
             <PropertyCard
               key={property.propertyId}
-              property={property}
+              property={{
+                ...property,
+                price: toNumber(property.price),
+              }}
               onClick={() => handlePropertyClick(property)}
             />
           ))

@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
 
     if (credentials.username === "admin" && credentials.password === "admin") {
       sessionStorage.setItem("isAuthenticated", "true");
-      navigate("/");
+      navigate("/dashboard");
     } else {
       alert("Invalid username or password. Try admin/admin.");
     }

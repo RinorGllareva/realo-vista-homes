@@ -76,7 +76,7 @@ const PriceFilter: React.FC<PriceFilterProps> = ({
       {open && (
         <div
           className="
-            absolute z-50 mt-3 w-72 left-0
+            absolute z-50 mt-3 left-100 sm:right-0
             rounded-lg border border-gray-200 bg-white p-3 shadow-lg
           "
         >

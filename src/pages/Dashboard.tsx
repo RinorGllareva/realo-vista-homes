@@ -3,7 +3,6 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -41,7 +40,7 @@ interface Property {
   propertyType: string;
   isForSale: boolean;
   isForRent: boolean;
-  price: number | string; // tolerate string to avoid NaN
+  price: number | string;
   bedrooms: number;
   bathrooms: number;
   squareFeet: number;
@@ -63,6 +62,20 @@ interface Property {
   interiorVideo: string;
 }
 
+/* ----------------- helpers ----------------- */
+const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+// ensure we always return an array from any API shape
+function toArray<T = unknown>(v: any, label?: string): T[] {
+  if (Array.isArray(v)) return v as T[];
+  if (v && typeof v === "object") {
+    if (Array.isArray(v.$values)) return v.$values as T[];
+    if (Array.isArray(v.data)) return v.data as T[];
+  }
+  if (label) console.warn(`Expected array at ${label}, got:`, v);
+  return [];
+}
+
 const Dashboard = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,17 +90,17 @@ const Dashboard = () => {
     } else {
       fetchProperties();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
-
-  // Use Vite proxy in dev (empty base), real domain in prod
-  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
 
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${base}/api/Property/GetProperties`);
-      // axios already gives parsed data
-      setProperties(res.data?.$values || res.data || []);
+      const url = `${API}/api/Property/GetProperties`;
+      const res = await axios.get(url, {
+        headers: { Accept: "application/json" },
+      });
+      setProperties(toArray<Property>(res.data, "GetProperties"));
     } catch (e) {
       console.error(e);
       toast({
@@ -95,6 +108,7 @@ const Dashboard = () => {
         description: "Failed to fetch properties. Please try again.",
         variant: "destructive",
       });
+      setProperties([]); // keep it safe for .map/.filter
     } finally {
       setLoading(false);
     }
@@ -109,7 +123,7 @@ const Dashboard = () => {
     if (!propertyToDelete) return;
     try {
       await axios.delete(
-        `${base}/api/Property/DeleteProperty/${propertyToDelete}`
+        `${API}/api/Property/DeleteProperty/${propertyToDelete}`
       );
       setProperties((prev) =>
         prev.filter((p) => p.propertyId !== propertyToDelete)
@@ -140,13 +154,16 @@ const Dashboard = () => {
 
   const formatPrice = (price: number | string) => {
     const n = typeof price === "string" ? Number(price) : price;
-    if (Number.isNaN(n)) return "—";
+    if (!Number.isFinite(n)) return "—";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
       minimumFractionDigits: 0,
     }).format(n);
   };
+
+  // always work with a guaranteed array
+  const list = toArray<Property>(properties, "properties");
 
   return (
     <div className="min-h-screen bg-[#0b1220] text-slate-200 p-6">
@@ -196,25 +213,25 @@ const Dashboard = () => {
               icon: <Home className="h-5 w-5 text-blue-400" />,
               bg: "bg-blue-500/10",
               label: "Total Properties",
-              value: properties.length,
+              value: list.length,
             },
             {
               icon: <DollarSign className="h-5 w-5 text-emerald-400" />,
               bg: "bg-emerald-500/10",
               label: "For Sale",
-              value: properties.filter((p) => p.isForSale).length,
+              value: list.filter((p) => p.isForSale).length,
             },
             {
               icon: <Building2 className="h-5 w-5 text-amber-400" />,
               bg: "bg-amber-500/10",
               label: "For Rent",
-              value: properties.filter((p) => p.isForRent).length,
+              value: list.filter((p) => p.isForRent).length,
             },
             {
               icon: <Square className="h-5 w-5 text-indigo-300" />,
               bg: "bg-indigo-500/10",
               label: "Available",
-              value: properties.filter((p) => p.isAvailable).length,
+              value: list.filter((p) => p.isAvailable).length,
             },
           ].map((s, i) => (
             <Card
@@ -246,14 +263,14 @@ const Dashboard = () => {
               <div className="flex items-center justify-center py-12">
                 <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-400" />
               </div>
-            ) : properties.length === 0 ? (
+            ) : list.length === 0 ? (
               <div className="py-12 text-center">
                 <Building2 className="mx-auto mb-4 h-12 w-12 text-slate-500" />
                 <p className="text-slate-400">No properties found</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                {properties.map((p) => (
+                {list.map((p) => (
                   <Card
                     key={p.propertyId}
                     className="border border-slate-800 bg-[#0b1323] hover:ring-1 hover:ring-blue-500/30"
@@ -364,8 +381,11 @@ const Dashboard = () => {
               <AlertDialogCancel className="bg-slate-800 text-slate-200 hover:bg-slate-700">
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction className="bg-rose-600 text-white hover:bg-rose-600/90">
-                <span onClick={confirmDelete}>Delete Property</span>
+              <AlertDialogAction
+                className="bg-rose-600 text-white hover:bg-rose-600/90"
+                onClick={confirmDelete}
+              >
+                Delete Property
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

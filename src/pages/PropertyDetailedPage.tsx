@@ -14,6 +14,10 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Button } from "@/components/ui/button";
 
+interface ImgObj {
+  imageUrl: string;
+}
+
 interface Property {
   propertyId: string;
   title: string;
@@ -42,7 +46,32 @@ interface Property {
   latitude?: number;
   longitude?: number;
   interiorVideo?: string;
-  images: Array<{ imageUrl: string }>;
+
+  // API mund ta kthejë si array, objekt i vetëm, string me presje, ose null
+  images?: ImgObj[] | ImgObj | string | null;
+}
+
+/* ---------- Helpers të vegjël sigurie ---------- */
+const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+function normalizeImages(x: unknown): ImgObj[] {
+  if (Array.isArray(x)) return x as ImgObj[];
+  if (x && typeof x === "object" && "imageUrl" in (x as any)) {
+    return [x as ImgObj];
+  }
+  if (typeof x === "string") {
+    // p.sh. "url1, url2"
+    return x
+      .split(",")
+      .map((s) => ({ imageUrl: s.trim() }))
+      .filter((o) => o.imageUrl.length > 0);
+  }
+  return []; // default bosh
+}
+
+function pickOne<T>(v: unknown): T | null {
+  if (Array.isArray(v)) return (v[0] as T) ?? null;
+  return (v as T) ?? null;
 }
 
 const PropertyDetailedPage = () => {
@@ -53,9 +82,6 @@ const PropertyDetailedPage = () => {
   const [photoIndex, setPhotoIndex] = useState(0);
   const sliderRef = useRef<Slider>(null);
   const virtualPortRef = useRef<HTMLDivElement>(null);
-
-  // 👇 use proxy in dev (empty base), real domain in prod
-  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
 
   const scrollToVirtualTour = () => {
     virtualPortRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,18 +102,26 @@ const PropertyDetailedPage = () => {
   useEffect(() => {
     const fetchPropertyData = async () => {
       try {
-        const response = await axios.get(
-          `${base}/api/Property/GetProperty/${id}`
-        );
-        setProperty(response.data);
+        const url = `${API}/api/Property/GetProperty/${id}`;
+        const response = await axios.get(url, {
+          headers: { Accept: "application/json" },
+        });
+
+        // Disa API kthejnë objekt, disa array → marrim një
+        let p = pickOne<Property>(response.data) ?? (response.data as Property);
+
+        // Siguro që `images` është gjithmonë array
+        const imgs = normalizeImages(p?.images);
+        p = { ...(p as Property), images: imgs };
+
+        setProperty(p);
       } catch (error) {
         console.error("Error fetching property data:", error);
+        setProperty(null);
       }
     };
 
-    if (id) {
-      fetchPropertyData();
-    }
+    if (id) fetchPropertyData();
   }, [id]);
 
   if (!property) {
@@ -111,9 +145,11 @@ const PropertyDetailedPage = () => {
     slidesToScroll: 1,
     arrows: false,
     centerMode: true,
-  };
+  } as const;
 
-  const images = property.images.map((img) => img.imageUrl);
+  // PËRDOR këtë, jo property.images.map direkt
+  const images = normalizeImages(property.images);
+  const imageUrls = images.map((img) => img.imageUrl);
 
   const handleImageClick = (index: number) => {
     setPhotoIndex(index);
@@ -121,26 +157,30 @@ const PropertyDetailedPage = () => {
   };
 
   const renderIcons = () => {
-    const type = property.propertyType?.toLowerCase();
+    const type = (property.propertyType || "").toLowerCase();
 
     switch (type) {
       case "house":
         return (
           <>
             <span className="flex items-center gap-2 text-foreground">
-              <IoBedOutline className="text-xl" /> {property.bedrooms} Dhoma
+              <IoBedOutline className="text-xl" /> {property.bedrooms ?? "-"}{" "}
+              Dhoma
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <PiBathtub className="text-xl" /> {property.bathrooms} Banjo
+              <PiBathtub className="text-xl" /> {property.bathrooms ?? "-"}{" "}
+              Banjo
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Katet
+              <SiLevelsdotfyi className="text-xl" />{" "}
+              {property.floorLevel ?? "-"} Katet
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
+              m²
             </span>
           </>
         );
@@ -149,19 +189,23 @@ const PropertyDetailedPage = () => {
         return (
           <>
             <span className="flex items-center gap-2 text-foreground">
-              <IoBedOutline className="text-xl" /> {property.bedrooms} Dhoma
+              <IoBedOutline className="text-xl" /> {property.bedrooms ?? "-"}{" "}
+              Dhoma
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <PiBathtub className="text-xl" /> {property.bathrooms} Banjo
+              <PiBathtub className="text-xl" /> {property.bathrooms ?? "-"}{" "}
+              Banjo
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Kati
+              <SiLevelsdotfyi className="text-xl" />{" "}
+              {property.floorLevel ?? "-"} Kati
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
+              m²
             </span>
           </>
         );
@@ -171,19 +215,23 @@ const PropertyDetailedPage = () => {
         return (
           <>
             <span className="flex items-center gap-2 text-foreground">
-              <MdMeetingRoom className="text-xl" /> {property.spaces} Hapësira
+              <MdMeetingRoom className="text-xl" /> {property.spaces ?? "-"}{" "}
+              Hapësira
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <PiBathtub className="text-xl" /> {property.bathrooms} Banjo
+              <PiBathtub className="text-xl" /> {property.bathrooms ?? "-"}{" "}
+              Banjo
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Kati
+              <SiLevelsdotfyi className="text-xl" />{" "}
+              {property.floorLevel ?? "-"} Kati
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
+              m²
             </span>
           </>
         );
@@ -191,7 +239,7 @@ const PropertyDetailedPage = () => {
       case "land":
         return (
           <span className="flex items-center gap-2 text-foreground">
-            <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+            <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"} m²
           </span>
         );
 
@@ -199,15 +247,18 @@ const PropertyDetailedPage = () => {
         return (
           <>
             <span className="flex items-center gap-2 text-foreground">
-              <MdMeetingRoom className="text-xl" /> {property.spaces} Hapësira
+              <MdMeetingRoom className="text-xl" /> {property.spaces ?? "-"}{" "}
+              Hapësira
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" /> {property.floorLevel} Kati
+              <SiLevelsdotfyi className="text-xl" />{" "}
+              {property.floorLevel ?? "-"} Kati
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet} m²
+              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
+              m²
             </span>
           </>
         );
@@ -216,6 +267,11 @@ const PropertyDetailedPage = () => {
         return null;
     }
   };
+
+  const priceText =
+    typeof property.price === "number"
+      ? property.price.toLocaleString()
+      : String(property.price ?? "");
 
   return (
     <div className="min-h-screen bg-background">
@@ -228,7 +284,7 @@ const PropertyDetailedPage = () => {
             {property.title}, {property.city}
           </h1>
           <p className="text-2xl md:text-3xl font-filter font-bold text-real-estate-secondary mt-2 md:mt-0">
-            €{property.price.toLocaleString()}
+            €{priceText}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-muted-foreground">
@@ -239,7 +295,7 @@ const PropertyDetailedPage = () => {
       {/* Image Slider */}
       <div className="relative w-full mt-8">
         <Slider ref={sliderRef} {...sliderSettings}>
-          {property.images.map((image, index) => (
+          {images.map((image, index) => (
             <div key={index} className="relative">
               <img
                 src={image.imageUrl}
@@ -270,7 +326,7 @@ const PropertyDetailedPage = () => {
         <DialogContent className="max-w-4xl w-full p-0 bg-black">
           <div className="relative">
             <img
-              src={images[photoIndex]}
+              src={imageUrls[photoIndex]}
               alt={`Property ${photoIndex + 1}`}
               className="w-full h-auto max-h-[80vh] object-contain"
             />

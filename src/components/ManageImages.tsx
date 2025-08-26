@@ -23,10 +23,11 @@ import {
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeft, Plus, Trash2, GripVertical, Upload } from "lucide-react";
+import axios from "axios";
 
 interface PropertyImage {
   imageId: number;
-  imageUrl: string; // <- always a string after normalization
+  imageUrl: string;
   propertyId: number;
 }
 
@@ -34,6 +35,77 @@ interface SortableImageProps {
   image: PropertyImage;
   onDelete: (imageId: number) => void;
 }
+
+/* ------------------- helpers ------------------- */
+const API_BASE = (() => {
+  let v = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
+  if (!v || v === "undefined" || v === "null") {
+    v = (import.meta as any)?.env?.PROD
+      ? "https://api.realo-realestate.com"
+      : "";
+  }
+  return v.replace(/\/+$/, "");
+})();
+const API_ORIGIN = API_BASE
+  ? new URL(API_BASE).origin
+  : typeof window !== "undefined"
+  ? window.location.origin
+  : "";
+
+const toArray = (raw: any): any[] => {
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === "object") {
+    if (Array.isArray(raw.$values)) return raw.$values;
+    if (Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw.result)) return raw.result;
+    if (Array.isArray(raw.items)) return raw.items;
+  }
+  return [];
+};
+
+// try to pull a string URL out of many shapes
+const extractUrl = (val: unknown): string => {
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "object") {
+    const o = val as any;
+    if (typeof o.imageUrl === "string") return o.imageUrl;
+    if (typeof o.url === "string") return o.url;
+    if (typeof o.src === "string") return o.src;
+    if (typeof o.link === "string") return o.link;
+    if (typeof o.href === "string") return o.href;
+    if (o.imageUrl && typeof o.imageUrl === "object") {
+      const nested = extractUrl(o.imageUrl);
+      if (nested) return nested;
+    }
+    if (typeof o.Value === "string") return o.Value;
+    if (typeof o.$value === "string") return o.$value;
+    for (const k of Object.keys(o)) {
+      if (typeof o[k] === "string") return o[k];
+    }
+  }
+  return "";
+};
+
+// make relative paths absolute to the API origin
+const toAbsoluteUrl = (u: string): string => {
+  if (!u) return "";
+  if (/^data:/.test(u) || /^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("//")) return `https:${u}`;
+  if (u.startsWith("/")) return `${API_ORIGIN}${u}`;
+  return u;
+};
+
+const normalizeImages = (raw: any, propertyId: number): PropertyImage[] =>
+  toArray(raw).map((it: any, idx: number) => {
+    const url = toAbsoluteUrl(extractUrl(it));
+    return {
+      imageId: Number(it?.imageId ?? it?.id ?? idx + 1),
+      imageUrl: url,
+      propertyId: Number(it?.propertyId ?? propertyId),
+    };
+  });
+/* ------------------------------------------------ */
 
 const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
   const {
@@ -51,7 +123,6 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
     opacity: isDragging ? 0.6 : 1,
   };
 
-  // helper to display a short path under the image
   const short = (u: string) => {
     try {
       const url = new URL(u);
@@ -114,68 +185,6 @@ const ManageImages: React.FC = () => {
   const [adding, setAdding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Use proxy in dev (empty base), domain in prod
-  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
-
-  /** Try to pull a string URL out of many possible shapes */
-  const extractUrl = (val: unknown): string => {
-    if (!val) return "";
-    if (typeof val === "string") return val;
-
-    if (typeof val === "object") {
-      const o = val as any;
-
-      // common patterns
-      if (typeof o.imageUrl === "string") return o.imageUrl;
-      if (typeof o.url === "string") return o.url;
-      if (typeof o.src === "string") return o.src;
-      if (typeof o.link === "string") return o.link;
-      if (typeof o.href === "string") return o.href;
-
-      // nested object holds the real url
-      if (o.imageUrl && typeof o.imageUrl === "object") {
-        const nested = extractUrl(o.imageUrl);
-        if (nested) return nested;
-      }
-
-      // .Value / .$value (e.g., some .NET serializers)
-      if (typeof o.Value === "string") return o.Value;
-      if (typeof o.$value === "string") return o.$value;
-
-      // last resort: first string property in the object
-      for (const k of Object.keys(o)) {
-        if (typeof o[k] === "string") return o[k];
-      }
-    }
-    return "";
-  };
-
-  /** Make URL absolute if the API returns a path (e.g. "/uploads/a.jpg") */
-  const toAbsoluteUrl = (u: string): string => {
-    if (!u) return "";
-    // data URLs or already absolute
-    if (/^data:/.test(u) || /^https?:\/\//i.test(u)) return u;
-    if (u.startsWith("//")) return `https:${u}`;
-    // relative path
-    if (u.startsWith("/")) return `${base}${u}`;
-    // otherwise leave as-is
-    return u;
-  };
-
-  /** Normalize mixed API payloads (strings / objects / nested urls) */
-  const normalizeImages = (raw: any, propertyId: number): PropertyImage[] => {
-    if (!Array.isArray(raw)) return [];
-
-    return raw.map((it: any, idx: number) => {
-      const url = toAbsoluteUrl(extractUrl(it));
-      return {
-        imageId: it?.imageId ?? it?.id ?? idx + 1,
-        imageUrl: url,
-        propertyId: it?.propertyId ?? propertyId,
-      };
-    });
-  };
-
   useEffect(() => {
     fetchPropertyImages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,15 +193,11 @@ const ManageImages: React.FC = () => {
   const fetchPropertyImages = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${base}/api/Property/GetPropertyImages/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch images");
-      const data = await res.json();
-
-      // DEBUG: reveal what the API actually returns (first item)
-      // console.log("GetPropertyImages response sample:", data?.[0]);
-
-      const normalized = normalizeImages(data, Number(id));
-      setImages(normalized);
+      const { data } = await axios.get(
+        `${API_BASE}/api/Property/GetPropertyImages/${id}`,
+        { headers: { Accept: "application/json" } }
+      );
+      setImages(normalizeImages(data, Number(id)));
     } catch (error) {
       console.error("Error fetching property images:", error);
       toast({
@@ -200,7 +205,7 @@ const ManageImages: React.FC = () => {
         description: "Failed to fetch property images. Please try again.",
         variant: "destructive",
       });
-      // fallback demo
+      // Optional fallback demo content:
       setImages([
         {
           imageId: 1,
@@ -236,16 +241,23 @@ const ManageImages: React.FC = () => {
       });
       return;
     }
+    if (clean.startsWith("blob:")) {
+      toast({
+        title: "Heads up",
+        description:
+          "Local file URLs (blob:) cannot be saved to the API. Upload to a host and paste its URL.",
+      });
+      return;
+    }
 
     try {
       setAdding(true);
-      const res = await fetch(`${base}/api/Property/AddPropertyImage/${id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // If your API expects { imageUrl: string }, change this line accordingly:
-        body: JSON.stringify(clean),
-      });
-      if (!res.ok) throw new Error("Failed to add image");
+      // If your API expects the raw string, change body to clean instead of { imageUrl: clean }.
+      await axios.post(
+        `${API_BASE}/api/Property/AddPropertyImage/${id}`,
+        { imageUrl: clean },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
       const newImg: PropertyImage = {
         imageId: Date.now(),
@@ -257,7 +269,7 @@ const ManageImages: React.FC = () => {
       toast({ title: "Success", description: "Image added successfully!" });
     } catch (error) {
       console.error("Error adding property image:", error);
-      // optimistic demo
+      // Optimistic add so UI stays responsive:
       const newImg: PropertyImage = {
         imageId: Date.now(),
         imageUrl: toAbsoluteUrl(clean),
@@ -267,7 +279,7 @@ const ManageImages: React.FC = () => {
       setNewImageUrl("");
       toast({
         title: "Success",
-        description: "Image added successfully! (Demo mode)",
+        description: "Image added successfully! (Optimistic)",
       });
     } finally {
       setAdding(false);
@@ -276,14 +288,10 @@ const ManageImages: React.FC = () => {
 
   const handleDeleteImage = async (imageId: number) => {
     if (!confirm("Are you sure you want to delete this image?")) return;
-
     try {
-      const res = await fetch(
-        `${base}/api/Property/DeletePropertyImage/${id}/${imageId}`,
-        { method: "DELETE" }
+      await axios.delete(
+        `${API_BASE}/api/Property/DeletePropertyImage/${id}/${imageId}`
       );
-      if (!res.ok) throw new Error("Failed to delete image");
-
       setImages((prev) => prev.filter((img) => img.imageId !== imageId));
       toast({ title: "Success", description: "Image deleted successfully!" });
     } catch (error) {
@@ -291,7 +299,7 @@ const ManageImages: React.FC = () => {
       setImages((prev) => prev.filter((img) => img.imageId !== imageId));
       toast({
         title: "Success",
-        description: "Image deleted successfully! (Demo mode)",
+        description: "Image deleted successfully! (Optimistic)",
       });
     }
   };
@@ -317,6 +325,7 @@ const ManageImages: React.FC = () => {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    // This creates a local preview URL (not persisted on server).
     const localUrl = URL.createObjectURL(file);
     setNewImageUrl(localUrl);
   };
@@ -366,7 +375,7 @@ const ManageImages: React.FC = () => {
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
                     placeholder="https://example.com/image.jpg  or  /uploads/abc.jpg"
-                    className={`${field}`}
+                    className={field}
                   />
                   <Button
                     variant="outline"
@@ -439,7 +448,7 @@ const ManageImages: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {images.map((image, i) => (
                       <SortableImage
-                        key={`${image.imageId}-${i}`} // fix “unique key” warning
+                        key={`${image.imageId}-${i}`}
                         image={image}
                         onDelete={handleDeleteImage}
                       />
@@ -456,4 +465,3 @@ const ManageImages: React.FC = () => {
 };
 
 export default ManageImages;
-

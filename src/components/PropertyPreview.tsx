@@ -19,38 +19,55 @@ interface Property {
   floorLevel?: number | string;
   squareFeet?: number;
   spaces?: number;
-  images?: Array<{ imageUrl: string }>;
+  images?: Array<{ imageUrl: string }> | { imageUrl: string } | string | null;
 }
+
+/* ---------------- helpers ---------------- */
+const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 const normalizeToArray = (raw: any): Property[] => {
   if (Array.isArray(raw)) return raw;
   if (!raw || typeof raw !== "object") return [];
+  if (Array.isArray(raw.$values)) return raw.$values; // .NET
   if (Array.isArray(raw.data)) return raw.data;
   if (Array.isArray(raw.result)) return raw.result;
   if (Array.isArray(raw.items)) return raw.items;
-  if (Array.isArray(raw.$values)) return raw.$values; // .NET style
   return [];
 };
+
+const normalizeImages = (x: unknown): Array<{ imageUrl: string }> => {
+  if (Array.isArray(x)) return x as Array<{ imageUrl: string }>;
+  if (x && typeof x === "object" && "imageUrl" in (x as any)) {
+    return [x as { imageUrl: string }];
+  }
+  if (typeof x === "string") {
+    return x
+      .split(",")
+      .map((s) => ({ imageUrl: s.trim() }))
+      .filter((o) => o.imageUrl);
+  }
+  return [];
+};
+/* ----------------------------------------- */
 
 const PropertyPreview: React.FC = () => {
   const navigate = useNavigate();
   const trackRef = useRef<HTMLDivElement>(null);
   const [properties, setProperties] = useState<Property[]>([]);
 
-  // Use Vite proxy in dev (empty base), real domain in prod
-  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
-
   useEffect(() => {
     (async () => {
       try {
-        const response = await axios.get(`${base}/api/Property/GetProperties`);
-        setProperties(normalizeToArray(response.data));
+        const { data } = await axios.get(`${API}/api/Property/GetProperties`, {
+          headers: { Accept: "application/json" },
+        });
+        setProperties(normalizeToArray(data));
       } catch (e) {
         console.error("Error fetching properties:", e);
-        setProperties([]);
+        setProperties([]); // keep UI safe
       }
     })();
-  }, [base]);
+  }, []);
 
   const getTypeLabel = (t: string) => {
     const map: Record<string, string> = {
@@ -61,22 +78,23 @@ const PropertyPreview: React.FC = () => {
       land: "Toka",
       building: "Objekte",
     };
-    return map[t?.toLowerCase?.()] || t;
+    return map[t?.toLowerCase?.()] || t || "";
   };
 
   const scrollLeft = () =>
     trackRef.current?.scrollBy({
-      left: -trackRef.current.clientWidth,
+      left: -(trackRef.current?.clientWidth || 0),
       behavior: "smooth",
     });
+
   const scrollRight = () =>
     trackRef.current?.scrollBy({
-      left: trackRef.current.clientWidth,
+      left: trackRef.current?.clientWidth || 0,
       behavior: "smooth",
     });
 
   const openDetail = (p: Property) =>
-    navigate(`/properties/${p.title}/${p.propertyId}`);
+    navigate(`/properties/${encodeURIComponent(p.title)}/${p.propertyId}`);
 
   const spec = (icon: React.ReactNode, label: string) => (
     <div className="flex flex-col items-center justify-start w-1/4 min-w-[56px]">
@@ -97,10 +115,10 @@ const PropertyPreview: React.FC = () => {
           <h1 className="font-title text-[#7e7859] font-light text-4xl md:text-5xl">
             REALO's
           </h1>
-          <h3 className="font-title text-[#7e7859] font-light text-3xl md:text-4xl">
-            New Properties
-          </h3>
         </div>
+        <h3 className="font-title text-[#7e7859] font-light text-3xl md:text-4xl">
+          New Properties
+        </h3>
         <hr className="mt-4 w-24 mx-auto border-[#bdb8a1]" />
       </div>
 
@@ -132,6 +150,10 @@ const PropertyPreview: React.FC = () => {
               ? Number(p.price.replace(/[^\d.]/g, ""))
               : p.price ?? 0;
 
+          const firstImg =
+            normalizeImages(p.images)[0]?.imageUrl ||
+            "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800";
+
           return (
             <div
               key={String(p.propertyId)}
@@ -150,10 +172,7 @@ const PropertyPreview: React.FC = () => {
 
               <div className="relative h-[180px] overflow-hidden">
                 <img
-                  src={
-                    p.images?.[0]?.imageUrl ||
-                    "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800"
-                  }
+                  src={firstImg}
                   alt={p.title}
                   className="h-full w-full object-cover"
                   loading="lazy"

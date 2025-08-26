@@ -76,7 +76,7 @@ const AreaFilter: React.FC<AreaFilterProps> = ({
       {open && (
         <div
           className="
-            absolute z-50 mt-3 w-64 -left-20 sm:left-0
+            absolute z-50 mt-3 left-100 sm:right-0
             rounded-lg border border-gray-200 bg-white p-3 shadow-lg
           "
         >
