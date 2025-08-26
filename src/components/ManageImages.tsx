@@ -26,7 +26,7 @@ import { ArrowLeft, Plus, Trash2, GripVertical, Upload } from "lucide-react";
 
 interface PropertyImage {
   imageId: number;
-  imageUrl: string;
+  imageUrl: string; // <- always a string after normalization
   propertyId: number;
 }
 
@@ -36,13 +36,29 @@ interface SortableImageProps {
 }
 
 const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: image.imageId });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: image.imageId });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
+  };
+
+  // helper to display a short path under the image
+  const short = (u: string) => {
+    try {
+      const url = new URL(u);
+      return `${url.hostname}${url.pathname}`;
+    } catch {
+      return u.slice(0, 70);
+    }
   };
 
   return (
@@ -80,7 +96,9 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
         </Button>
       </div>
       <div className="px-3 py-2 bg-[#0b1220]/60 border-t border-slate-800">
-        <p className="text-xs text-slate-400 truncate">{image.imageUrl}</p>
+        <p className="text-xs text-slate-400 truncate">
+          {short(image.imageUrl)}
+        </p>
       </div>
     </div>
   );
@@ -99,10 +117,64 @@ const ManageImages: React.FC = () => {
   // Use proxy in dev (empty base), domain in prod
   const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+  /** Try to pull a string URL out of many possible shapes */
+  const extractUrl = (val: unknown): string => {
+    if (!val) return "";
+    if (typeof val === "string") return val;
+
+    if (typeof val === "object") {
+      const o = val as any;
+
+      // common patterns
+      if (typeof o.imageUrl === "string") return o.imageUrl;
+      if (typeof o.url === "string") return o.url;
+      if (typeof o.src === "string") return o.src;
+      if (typeof o.link === "string") return o.link;
+      if (typeof o.href === "string") return o.href;
+
+      // nested object holds the real url
+      if (o.imageUrl && typeof o.imageUrl === "object") {
+        const nested = extractUrl(o.imageUrl);
+        if (nested) return nested;
+      }
+
+      // .Value / .$value (e.g., some .NET serializers)
+      if (typeof o.Value === "string") return o.Value;
+      if (typeof o.$value === "string") return o.$value;
+
+      // last resort: first string property in the object
+      for (const k of Object.keys(o)) {
+        if (typeof o[k] === "string") return o[k];
+      }
+    }
+    return "";
+  };
+
+  /** Make URL absolute if the API returns a path (e.g. "/uploads/a.jpg") */
+  const toAbsoluteUrl = (u: string): string => {
+    if (!u) return "";
+    // data URLs or already absolute
+    if (/^data:/.test(u) || /^https?:\/\//i.test(u)) return u;
+    if (u.startsWith("//")) return `https:${u}`;
+    // relative path
+    if (u.startsWith("/")) return `${base}${u}`;
+    // otherwise leave as-is
+    return u;
+  };
+
+  /** Normalize mixed API payloads (strings / objects / nested urls) */
+  const normalizeImages = (raw: any, propertyId: number): PropertyImage[] => {
+    if (!Array.isArray(raw)) return [];
+
+    return raw.map((it: any, idx: number) => {
+      const url = toAbsoluteUrl(extractUrl(it));
+      return {
+        imageId: it?.imageId ?? it?.id ?? idx + 1,
+        imageUrl: url,
+        propertyId: it?.propertyId ?? propertyId,
+      };
+    });
+  };
 
   useEffect(() => {
     fetchPropertyImages();
@@ -115,7 +187,12 @@ const ManageImages: React.FC = () => {
       const res = await fetch(`${base}/api/Property/GetPropertyImages/${id}`);
       if (!res.ok) throw new Error("Failed to fetch images");
       const data = await res.json();
-      setImages(Array.isArray(data) ? data : []);
+
+      // DEBUG: reveal what the API actually returns (first item)
+      // console.log("GetPropertyImages response sample:", data?.[0]);
+
+      const normalized = normalizeImages(data, Number(id));
+      setImages(normalized);
     } catch (error) {
       console.error("Error fetching property images:", error);
       toast({
@@ -123,7 +200,7 @@ const ManageImages: React.FC = () => {
         description: "Failed to fetch property images. Please try again.",
         variant: "destructive",
       });
-      // Fallback demo items
+      // fallback demo
       setImages([
         {
           imageId: 1,
@@ -150,7 +227,8 @@ const ManageImages: React.FC = () => {
   };
 
   const handleAddImage = async () => {
-    if (!newImageUrl.trim()) {
+    const clean = newImageUrl.trim();
+    if (!clean) {
       toast({
         title: "Error",
         description: "Please enter a valid image URL.",
@@ -161,33 +239,31 @@ const ManageImages: React.FC = () => {
 
     try {
       setAdding(true);
-      const res = await fetch(
-        `${base}/api/Property/AddPropertyImage/${id}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newImageUrl),
-        }
-      );
+      const res = await fetch(`${base}/api/Property/AddPropertyImage/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // If your API expects { imageUrl: string }, change this line accordingly:
+        body: JSON.stringify(clean),
+      });
       if (!res.ok) throw new Error("Failed to add image");
 
-      const newImage: PropertyImage = {
+      const newImg: PropertyImage = {
         imageId: Date.now(),
-        imageUrl: newImageUrl,
+        imageUrl: toAbsoluteUrl(clean),
         propertyId: Number(id),
       };
-      setImages((prev) => [...prev, newImage]);
+      setImages((prev) => [...prev, newImg]);
       setNewImageUrl("");
       toast({ title: "Success", description: "Image added successfully!" });
     } catch (error) {
       console.error("Error adding property image:", error);
-      // Optimistic UI (demo)
-      const newImage: PropertyImage = {
+      // optimistic demo
+      const newImg: PropertyImage = {
         imageId: Date.now(),
-        imageUrl: newImageUrl,
+        imageUrl: toAbsoluteUrl(clean),
         propertyId: Number(id),
       };
-      setImages((prev) => [...prev, newImage]);
+      setImages((prev) => [...prev, newImg]);
       setNewImageUrl("");
       toast({
         title: "Success",
@@ -219,6 +295,11 @@ const ManageImages: React.FC = () => {
       });
     }
   };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -269,18 +350,22 @@ const ManageImages: React.FC = () => {
         {/* Add Image */}
         <Card className="border border-slate-800 bg-[#0f172a]">
           <CardHeader>
-            <CardTitle className="text-lg text-slate-100">Add New Image</CardTitle>
+            <CardTitle className="text-lg text-slate-100">
+              Add New Image
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-6">
             <div className="flex gap-4">
               <div className="flex-1 space-y-2">
-                <Label htmlFor="imageUrl" className="text-slate-300">Image URL</Label>
+                <Label htmlFor="imageUrl" className="text-slate-300">
+                  Image URL
+                </Label>
                 <div className="relative flex gap-2">
                   <Input
                     id="imageUrl"
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
+                    placeholder="https://example.com/image.jpg  or  /uploads/abc.jpg"
                     className={`${field}`}
                   />
                   <Button
@@ -306,7 +391,14 @@ const ManageImages: React.FC = () => {
               disabled={adding || !newImageUrl.trim()}
               className="bg-blue-500 hover:bg-blue-500/90 text-white shadow-md rounded-xl"
             >
-              {adding ? "Adding..." : (<><Plus className="h-4 w-4 mr-2" />Add Image</>)}
+              {adding ? (
+                "Adding..."
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Image
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -317,7 +409,9 @@ const ManageImages: React.FC = () => {
             <CardTitle className="text-lg text-slate-100">
               Property Images ({images.length})
             </CardTitle>
-            <p className="text-sm text-slate-400">Drag and drop to reorder images</p>
+            <p className="text-sm text-slate-400">
+              Drag and drop to reorder images
+            </p>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -328,7 +422,9 @@ const ManageImages: React.FC = () => {
               <div className="text-center py-12">
                 <Upload className="h-12 w-12 text-slate-500 mx-auto mb-4" />
                 <p className="text-slate-400">No images found</p>
-                <p className="text-sm text-slate-500">Add your first image above</p>
+                <p className="text-sm text-slate-500">
+                  Add your first image above
+                </p>
               </div>
             ) : (
               <DndContext
@@ -341,9 +437,9 @@ const ManageImages: React.FC = () => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {images.map((image) => (
+                    {images.map((image, i) => (
                       <SortableImage
-                        key={image.imageId}
+                        key={`${image.imageId}-${i}`} // fix “unique key” warning
                         image={image}
                         onDelete={handleDeleteImage}
                       />
@@ -360,3 +456,4 @@ const ManageImages: React.FC = () => {
 };
 
 export default ManageImages;
+
