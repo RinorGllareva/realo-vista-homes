@@ -23,19 +23,20 @@ interface Property {
 }
 
 /* ---------------- helpers ---------------- */
-const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
-const normalizeToArray = (raw: any): Property[] => {
-  if (Array.isArray(raw)) return raw;
+function normalizeToArray(raw: unknown): Property[] {
+  if (Array.isArray(raw)) return raw as Property[];
   if (!raw || typeof raw !== "object") return [];
-  if (Array.isArray(raw.$values)) return raw.$values; // .NET
-  if (Array.isArray(raw.data)) return raw.data;
-  if (Array.isArray(raw.result)) return raw.result;
-  if (Array.isArray(raw.items)) return raw.items;
+  const r = raw as any;
+  if (Array.isArray(r.$values)) return r.$values as Property[]; // .NET
+  if (Array.isArray(r.data)) return r.data as Property[];
+  if (Array.isArray(r.result)) return r.result as Property[];
+  if (Array.isArray(r.items)) return r.items as Property[];
   return [];
-};
+}
 
-const normalizeImages = (x: unknown): Array<{ imageUrl: string }> => {
+function normalizeImages(x: unknown): Array<{ imageUrl: string }> {
   if (Array.isArray(x)) return x as Array<{ imageUrl: string }>;
   if (x && typeof x === "object" && "imageUrl" in (x as any)) {
     return [x as { imageUrl: string }];
@@ -47,7 +48,7 @@ const normalizeImages = (x: unknown): Array<{ imageUrl: string }> => {
       .filter((o) => o.imageUrl);
   }
   return [];
-};
+}
 /* ----------------------------------------- */
 
 const PropertyPreview: React.FC = () => {
@@ -56,17 +57,28 @@ const PropertyPreview: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
 
   useEffect(() => {
-    (async () => {
+    const abort = new AbortController();
+
+    async function fetchProps() {
       try {
-        const { data } = await axios.get(`${API}/api/Property/GetProperties`, {
+        const url = API_BASE
+          ? `${API_BASE}/api/Property/GetProperties`
+          : `/api/Property/GetProperties`;
+        const { data } = await axios.get(url, {
           headers: { Accept: "application/json" },
+          signal: abort.signal,
         });
         setProperties(normalizeToArray(data));
-      } catch (e) {
-        console.error("Error fetching properties:", e);
-        setProperties([]); // keep UI safe
+      } catch (e: any) {
+        if (e?.name !== "CanceledError" && e?.code !== "ERR_CANCELED") {
+          console.error("Error fetching properties:", e);
+          setProperties([]);
+        }
       }
-    })();
+    }
+
+    fetchProps();
+    return () => abort.abort();
   }, []);
 
   const getTypeLabel = (t: string) => {
@@ -77,6 +89,7 @@ const PropertyPreview: React.FC = () => {
       store: "Lokal",
       land: "Toka",
       building: "Objekte",
+      warehouse: "Depo",
     };
     return map[t?.toLowerCase?.()] || t || "";
   };
@@ -113,7 +126,7 @@ const PropertyPreview: React.FC = () => {
       <div className="mb-6 text-center">
         <div className="flex items-center justify-center gap-3">
           <h1 className="font-title text-[#7e7859] font-light text-4xl md:text-5xl">
-            REALO's
+            REALO&apos;s
           </h1>
         </div>
         <h3 className="font-title text-[#7e7859] font-light text-3xl md:text-4xl">
@@ -144,15 +157,15 @@ const PropertyPreview: React.FC = () => {
         className="flex gap-5 pb-5 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {list.map((p) => {
-          const type = p.propertyType?.toLowerCase?.();
+          const type = p.propertyType?.toLowerCase?.() || "";
           const priceNumber =
             typeof p.price === "string"
               ? Number(p.price.replace(/[^\d.]/g, ""))
-              : p.price ?? 0;
+              : Number(p.price ?? 0);
 
           const firstImg =
             normalizeImages(p.images)[0]?.imageUrl ||
-            "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800";
+            "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop";
 
           return (
             <div

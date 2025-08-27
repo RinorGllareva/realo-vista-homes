@@ -17,7 +17,13 @@ const MainSection: React.FC = () => {
   };
 
   const handleSearch = () => {
-    const queryParams = new URLSearchParams(filters).toString();
+    // Only include non-empty filters
+    const entries = Object.entries(filters).filter(
+      ([, v]) => v !== "" && v != null
+    );
+    const queryParams = new URLSearchParams(
+      entries as [string, string][]
+    ).toString();
     navigate(`/Property?${queryParams}`);
   };
 
@@ -85,7 +91,6 @@ const MainSection: React.FC = () => {
           </h3>
         </div>
 
-        {/* KEY CHANGE: fixed width when vertical, full width only on very small screens */}
         <div
           className="
             inline-flex gap-2 sm:gap-3
@@ -153,7 +158,7 @@ const MainSection: React.FC = () => {
             {minPriceOptions.map((price) => (
               <option
                 key={price}
-                value={price}
+                value={String(price)}
                 className="bg-[#0a4834] text-white"
               >
                 {price.toLocaleString("en-US")}
@@ -181,7 +186,7 @@ const MainSection: React.FC = () => {
             {maxPriceOptions.map((price) => (
               <option
                 key={price}
-                value={price}
+                value={String(price)}
                 className="bg-[#0a4834] text-white"
               >
                 {price.toLocaleString("en-US")}
