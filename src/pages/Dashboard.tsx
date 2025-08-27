@@ -28,6 +28,7 @@ import {
   Square,
   MapPin,
 } from "lucide-react";
+import { API as API_BASE } from "@/lib/api";
 
 interface Property {
   propertyId: number;
@@ -63,7 +64,15 @@ interface Property {
 }
 
 /* ----------------- helpers ----------------- */
-const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const requestUrl = `${API_BASE}/Property/GetProperties`;
+const res = await axios.get(requestUrl);
+
+// OPTIONAL: debug guard while you’re fixing the proxy/CORS
+const ct = String(res.headers?.["content-type"] || "");
+if (!ct.includes("application/json")) {
+  console.error("Expected JSON but got", ct, "from", res.request?.responseURL);
+  throw new Error("API did not return JSON");
+}
 
 // ensure we always return an array from any API shape
 function toArray<T = unknown>(v: any, label?: string): T[] {
@@ -96,7 +105,7 @@ const Dashboard = () => {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const url = `${API}/api/Property/GetProperties`;
+      const url = `${API_BASE}api/Property/GetProperties`;
       const res = await axios.get(url, {
         headers: { Accept: "application/json" },
       });
@@ -123,7 +132,7 @@ const Dashboard = () => {
     if (!propertyToDelete) return;
     try {
       await axios.delete(
-        `${API}/api/Property/DeleteProperty/${propertyToDelete}`
+        `${API_BASE}/api/Property/DeleteProperty/${propertyToDelete}`
       );
       setProperties((prev) =>
         prev.filter((p) => p.propertyId !== propertyToDelete)
