@@ -9,9 +9,9 @@ const HomePage = () => {
     <div>
       <Header />
       <MainSection />
-      {/* <PropertyPreview />
+      <PropertyPreview />
       <AboutSection />
-      <Footer /> */}
+      <Footer />
     </div>
   );
 };

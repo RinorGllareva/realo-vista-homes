@@ -26,16 +26,16 @@ const App = () => (
         <Routes>
           {/* Public */}
           <Route path="/" element={<HomePage />} />
-          {/* <Route path="/Property" element={<PropertyPage />} />
+          <Route path="/Property" element={<PropertyPage />} />
           <Route
             path="/properties/:title/:id"
             element={<PropertyDetailedPage />}
           />
           <Route path="/contact-us" element={<ContactPage />} />
-          <Route path="/login" element={<LogInPage />} /> */}
+          <Route path="/login" element={<LogInPage />} /> 
 
           {/* Private */}
-          {/* <Route
+          <Route
             path="/dashboard"
             element={
               <PrivateRoute>
@@ -66,7 +66,7 @@ const App = () => (
                 <ManageImages />
               </PrivateRoute>
             }
-          /> */}
+          />
 
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
