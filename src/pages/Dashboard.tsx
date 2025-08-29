@@ -64,7 +64,7 @@ interface Property {
 }
 
 /* ----------------- helpers ----------------- */
-const requestUrl = `${API_BASE}/Property/GetProperties`;
+const requestUrl = `${API_BASE}/api/Property/GetProperties`;
 const res = await axios.get(requestUrl);
 
 // OPTIONAL: debug guard while you’re fixing the proxy/CORS
@@ -105,7 +105,7 @@ const Dashboard = () => {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const url = `${API_BASE}api/Property/GetProperties`;
+      const url = `${API_BASE}/api/Property/GetProperties`;
       const res = await axios.get(url, {
         headers: { Accept: "application/json" },
       });
