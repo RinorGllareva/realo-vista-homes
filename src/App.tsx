@@ -32,17 +32,10 @@ const App = () => (
             element={<PropertyDetailedPage />}
           />
           <Route path="/contact-us" element={<ContactPage />} />
-          <Route path="/login" element={<LogInPage />} /> 
+          <Route path="/login" element={<LogInPage />} />
 
           {/* Private */}
-          <Route
-            path="/dashboard"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route
             path="/add-property"
             element={
