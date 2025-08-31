@@ -2,17 +2,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
+
 import HomePage from "./pages/HomePage";
 import PropertyPage from "./pages/PropertyPage";
 import PropertyDetailedPage from "./pages/PropertyDetailedPage";
 import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
-import LogInPage from "../src/pages/LogInPage";
-import Dashboard from "../src/pages/Dashboard";
-import AddProperty from "../src/components/AddProperty";
-import EditProperty from "../src/components/EditProperty";
-import ManageImages from "../src/components/ManageImages";
+import LogInPage from "./pages/LogInPage";
+import Dashboard from "./pages/Dashboard";
+import AddProperty from "./components/AddProperty";
+import EditProperty from "./components/EditProperty";
+import ManageImages from "./components/ManageImages";
 import PrivateRoute from "./PrivateRoute";
 
 const queryClient = new QueryClient();
@@ -22,7 +23,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <HashRouter basename="/">
         <Routes>
           {/* Public */}
           <Route path="/" element={<HomePage />} />
@@ -32,7 +33,7 @@ const App = () => (
             element={<PropertyDetailedPage />}
           />
           <Route path="/contact-us" element={<ContactPage />} />
-          <Route path="/login" element={<LogInPage />} /> 
+          <Route path="/login" element={<LogInPage />} />
 
           {/* Private */}
           <Route
@@ -71,7 +72,7 @@ const App = () => (
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
