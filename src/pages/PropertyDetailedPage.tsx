@@ -13,6 +13,7 @@ import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Button } from "@/components/ui/button";
+import { apiUrl } from "@/lib/api";
 
 interface ImgObj {
   imageUrl: string;
@@ -22,7 +23,7 @@ interface Property {
   propertyId: string;
   title: string;
   city: string;
-  price: number;
+  price: number | string;
   propertyType: string;
   isForSale: boolean;
   description?: string;
@@ -46,33 +47,104 @@ interface Property {
   latitude?: number;
   longitude?: number;
   interiorVideo?: string;
-
-  // API mund ta kthejë si array, objekt i vetëm, string me presje, ose null
   images?: ImgObj[] | ImgObj | string | null;
 }
 
-/* ---------- Helpers të vegjël sigurie ---------- */
-const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+/* ---------------------- helpers (logic only) ---------------------- */
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+const API_ORIGIN = API_BASE
+  ? new URL(API_BASE).origin
+  : typeof window !== "undefined"
+  ? window.location.origin
+  : "";
+
+// extract a likely URL from many shapes
+const extractUrl = (val: unknown): string => {
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "object") {
+    const o = val as any;
+    if (typeof o.imageUrl === "string") return o.imageUrl;
+    if (typeof o.url === "string") return o.url;
+    if (typeof o.src === "string") return o.src;
+    if (typeof o.link === "string") return o.link;
+    if (typeof o.href === "string") return o.href;
+    if (o.imageUrl && typeof o.imageUrl === "object") {
+      const nested = extractUrl(o.imageUrl);
+      if (nested) return nested;
+    }
+    // last resort: first string value on the object
+    for (const k of Object.keys(o)) {
+      if (typeof o[k] === "string") return o[k];
+    }
+  }
+  return "";
+};
+
+// make relative paths absolute to the API origin
+const toAbsoluteUrl = (u: string): string => {
+  if (!u) return "";
+  if (/^data:/.test(u) || /^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("//")) return `https:${u}`;
+  if (u.startsWith("/")) return `${API_ORIGIN}${u}`;
+  return u;
+};
+
+const toArray = (raw: any): any[] => {
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === "object") {
+    if (Array.isArray(raw.$values)) return raw.$values;
+    if (Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw.items)) return raw.items;
+    if (Array.isArray(raw.result)) return raw.result;
+  }
+  return [];
+};
 
 function normalizeImages(x: unknown): ImgObj[] {
-  if (Array.isArray(x)) return x as ImgObj[];
-  if (x && typeof x === "object" && "imageUrl" in (x as any)) {
-    return [x as ImgObj];
+  // supports: array, single object, comma-separated string, or nested lists
+  if (Array.isArray(x)) {
+    return (x as any[])
+      .map((it, i) => ({
+        imageUrl: toAbsoluteUrl(extractUrl(it) || ""),
+      }))
+      .filter((it) => it.imageUrl);
+  }
+  if (x && typeof x === "object") {
+    const arr = toArray(x);
+    if (arr.length) {
+      return arr
+        .map((it) => ({ imageUrl: toAbsoluteUrl(extractUrl(it) || "") }))
+        .filter((it) => it.imageUrl);
+    }
+    const single = extractUrl(x);
+    return single ? [{ imageUrl: toAbsoluteUrl(single) }] : [];
   }
   if (typeof x === "string") {
-    // p.sh. "url1, url2"
     return x
       .split(",")
-      .map((s) => ({ imageUrl: s.trim() }))
-      .filter((o) => o.imageUrl.length > 0);
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => ({ imageUrl: toAbsoluteUrl(s) }));
   }
-  return []; // default bosh
+  return [];
 }
 
 function pickOne<T>(v: unknown): T | null {
   if (Array.isArray(v)) return (v[0] as T) ?? null;
+  if (v && typeof v === "object") {
+    const o: any = v;
+    if (Array.isArray(o.$values) && o.$values.length)
+      return (o.$values[0] as T) ?? null;
+    if (Array.isArray(o.data) && o.data.length) return (o.data[0] as T) ?? null;
+    if (Array.isArray(o.items) && o.items.length)
+      return (o.items[0] as T) ?? null;
+    if (Array.isArray(o.result) && o.result.length)
+      return (o.result[0] as T) ?? null;
+  }
   return (v as T) ?? null;
 }
+/* ------------------------------------------------------------------ */
 
 const PropertyDetailedPage = () => {
   const navigate = useNavigate();
@@ -100,28 +172,38 @@ const PropertyDetailedPage = () => {
   };
 
   useEffect(() => {
+    const ac = new AbortController();
+
     const fetchPropertyData = async () => {
       try {
-        const url = `${API}/api/Property/GetProperty/${id}`;
-        const response = await axios.get(url, {
+        const url = apiUrl(`api/Property/GetProperty/${id}`);
+        const { data } = await axios.get(url, {
           headers: { Accept: "application/json" },
+          signal: ac.signal,
         });
 
-        // Disa API kthejnë objekt, disa array → marrim një
-        let p = pickOne<Property>(response.data) ?? (response.data as Property);
+        // Some APIs return a list/special shapes; pick one robustly
+        let p = pickOne<Property>(data) ?? (data as Property);
 
-        // Siguro që `images` është gjithmonë array
-        const imgs = normalizeImages(p?.images);
+        // Normalize images: handle arrays, objects, strings, nested $values, etc.
+        const imgs =
+          normalizeImages((p as any)?.images) ||
+          normalizeImages((p as any)?.propertyImages) ||
+          [];
+
         p = { ...(p as Property), images: imgs };
 
         setProperty(p);
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED")
+          return;
         console.error("Error fetching property data:", error);
         setProperty(null);
       }
     };
 
     if (id) fetchPropertyData();
+    return () => ac.abort();
   }, [id]);
 
   if (!property) {
@@ -147,7 +229,6 @@ const PropertyDetailedPage = () => {
     centerMode: true,
   } as const;
 
-  // PËRDOR këtë, jo property.images.map direkt
   const images = normalizeImages(property.images);
   const imageUrls = images.map((img) => img.imageUrl);
 

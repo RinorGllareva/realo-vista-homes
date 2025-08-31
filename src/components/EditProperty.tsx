@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 interface PropertyFormData {
   title: string;
@@ -48,6 +49,11 @@ interface PropertyFormData {
   exteriorVideo: string;
   interiorVideo: string;
 }
+
+const toObject = (raw: any): Record<string, any> => {
+  if (raw && typeof raw === "object") return raw;
+  return {};
+};
 
 const EditProperty = () => {
   const { id } = useParams();
@@ -88,19 +94,22 @@ const EditProperty = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Use Vite proxy in dev (empty base), real domain in prod
-  const base = import.meta.env.PROD ? "https://api.realo-realestate.com" : "";
-
   // shared dark-field classes
   const field =
     "bg-[#0b1220] text-slate-200 placeholder:text-slate-500 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 
   useEffect(() => {
-    const fetchProperty = async () => {
+    if (!id) return;
+    const ac = new AbortController();
+
+    (async () => {
       try {
-        // FIX: correct endpoint + axios usage
-        const res = await axios.get(`${base}/api/Property/GetProperty/${id}`);
-        const data = res.data;
+        const url = apiUrl(`api/Property/GetProperty/${id}`);
+        const res = await axios.get(url, {
+          headers: { Accept: "application/json" },
+          signal: ac.signal,
+        });
+        const data = toObject(res.data);
 
         setFormData({
           title: data.title ?? "",
@@ -123,7 +132,7 @@ const EditProperty = () => {
           additionalFeatures: data.additionalFeatures ?? "",
           hasOwnershipDocument: !!data.hasOwnershipDocument,
           spaces: (data.spaces ?? "").toString(),
-          floorLevel: data.floorLevel ?? "",
+          floorLevel: (data.floorLevel ?? "").toString(),
           country: data.country ?? "",
           neighborhood: data.neighborhood ?? "",
           builder: data.builder ?? "",
@@ -133,7 +142,8 @@ const EditProperty = () => {
           exteriorVideo: data.exteriorVideo ?? "",
           interiorVideo: data.interiorVideo ?? "",
         });
-      } catch (e) {
+      } catch (e: any) {
+        if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
         console.error(e);
         toast({
           title: "Error",
@@ -143,9 +153,9 @@ const EditProperty = () => {
       } finally {
         setInitialLoading(false);
       }
-    };
+    })();
 
-    if (id) fetchProperty();
+    return () => ac.abort();
   }, [id, toast]);
 
   const handleChange = (name: string, value: string | boolean) =>
@@ -153,20 +163,25 @@ const EditProperty = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!id) return;
     try {
       setLoading(true);
+      const url = apiUrl(`api/Property/PutProperty/${id}`);
 
-      // FIX: use base + axios.put + correct route
-      await axios.put(`${base}/api/Property/PutProperty/${id}`, {
-        ...formData,
-        price: formData.price, // keep string (your backend accepts string)
-        bedrooms: parseInt(formData.bedrooms) || 0,
-        bathrooms: parseInt(formData.bathrooms) || 0,
-        squareFeet: parseFloat(formData.squareFeet) || 0,
-        spaces: parseInt(formData.spaces) || 0,
-        latitude: parseFloat(formData.latitude) || 0,
-        longitude: parseFloat(formData.longitude) || 0,
-      });
+      await axios.put(
+        url,
+        {
+          ...formData,
+          // server may expect numbers (coerce safely)
+          bedrooms: parseInt(formData.bedrooms) || 0,
+          bathrooms: parseInt(formData.bathrooms) || 0,
+          squareFeet: parseFloat(formData.squareFeet) || 0,
+          spaces: parseInt(formData.spaces) || 0,
+          latitude: parseFloat(formData.latitude) || 0,
+          longitude: parseFloat(formData.longitude) || 0,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
       toast({
         title: "Success",

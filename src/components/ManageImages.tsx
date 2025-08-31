@@ -24,6 +24,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeft, Plus, Trash2, GripVertical, Upload } from "lucide-react";
 import axios from "axios";
+import { apiUrl } from "@/lib/api";
 
 interface PropertyImage {
   imageId: number;
@@ -36,21 +37,15 @@ interface SortableImageProps {
   onDelete: (imageId: number) => void;
 }
 
-/* ------------------- helpers ------------------- */
-const API_BASE = (() => {
-  let v = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
-  if (!v || v === "undefined" || v === "null") {
-    v = (import.meta as any)?.env?.PROD
-      ? "https://api.realo-realestate.com"
-      : "";
-  }
-  return v.replace(/\/+$/, "");
+// API origin (absolute) for turning relative image paths into absolute URLs.
+const API_ORIGIN = (() => {
+  try {
+    const u = apiUrl("/"); // may be absolute (https://api...) or relative (/api/)
+    if (u.startsWith("http")) return new URL(u).origin;
+    if (typeof window !== "undefined") return window.location.origin;
+  } catch {}
+  return "";
 })();
-const API_ORIGIN = API_BASE
-  ? new URL(API_BASE).origin
-  : typeof window !== "undefined"
-  ? window.location.origin
-  : "";
 
 const toArray = (raw: any): any[] => {
   if (Array.isArray(raw)) return raw;
@@ -186,50 +181,55 @@ const ManageImages: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchPropertyImages();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    if (!id) return;
+    const ac = new AbortController();
 
-  const fetchPropertyImages = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(
-        `${API_BASE}/api/Property/GetPropertyImages/${id}`,
-        { headers: { Accept: "application/json" } }
-      );
-      setImages(normalizeImages(data, Number(id)));
-    } catch (error) {
-      console.error("Error fetching property images:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch property images. Please try again.",
-        variant: "destructive",
-      });
-      // Optional fallback demo content:
-      setImages([
-        {
-          imageId: 1,
-          imageUrl:
-            "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=1200",
-          propertyId: Number(id),
-        },
-        {
-          imageId: 2,
-          imageUrl:
-            "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200",
-          propertyId: Number(id),
-        },
-        {
-          imageId: 3,
-          imageUrl:
-            "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200",
-          propertyId: Number(id),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    (async () => {
+      try {
+        setLoading(true);
+        const url = apiUrl(`api/Property/GetPropertyImages/${id}`);
+        const { data } = await axios.get(url, {
+          headers: { Accept: "application/json" },
+          signal: ac.signal,
+        });
+        setImages(normalizeImages(data, Number(id)));
+      } catch (error: any) {
+        if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED")
+          return;
+        console.error("Error fetching property images:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch property images. Please try again.",
+          variant: "destructive",
+        });
+        // Optional fallback demo content:
+        setImages([
+          {
+            imageId: 1,
+            imageUrl:
+              "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=1200",
+            propertyId: Number(id),
+          },
+          {
+            imageId: 2,
+            imageUrl:
+              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200",
+            propertyId: Number(id),
+          },
+          {
+            imageId: 3,
+            imageUrl:
+              "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200",
+            propertyId: Number(id),
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => ac.abort();
+  }, [id, toast]);
 
   const handleAddImage = async () => {
     const clean = newImageUrl.trim();
@@ -252,9 +252,10 @@ const ManageImages: React.FC = () => {
 
     try {
       setAdding(true);
-      // If your API expects the raw string, change body to clean instead of { imageUrl: clean }.
+      const url = apiUrl(`api/Property/AddPropertyImage/${id}`);
+      // If your API expects just the raw string, send `clean` instead.
       await axios.post(
-        `${API_BASE}/api/Property/AddPropertyImage/${id}`,
+        url,
         { imageUrl: clean },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -289,9 +290,8 @@ const ManageImages: React.FC = () => {
   const handleDeleteImage = async (imageId: number) => {
     if (!confirm("Are you sure you want to delete this image?")) return;
     try {
-      await axios.delete(
-        `${API_BASE}/api/Property/DeletePropertyImage/${id}/${imageId}`
-      );
+      const url = apiUrl(`api/Property/DeletePropertyImage/${id}/${imageId}`);
+      await axios.delete(url);
       setImages((prev) => prev.filter((img) => img.imageId !== imageId));
       toast({ title: "Success", description: "Image deleted successfully!" });
     } catch (error) {

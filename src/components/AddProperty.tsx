@@ -16,18 +16,9 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 /* ---------------- helpers ---------------- */
-const API = (() => {
-  let v = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
-  if (!v || v === "undefined" || v === "null") {
-    v = (import.meta as any)?.env?.PROD
-      ? "https://api.realo-realestate.com"
-      : "";
-  }
-  return v.replace(/\/+$/, "");
-})();
-
 const toInt = (v: string) => {
   const n = parseInt((v ?? "").toString().replace(/[^\d-]/g, ""), 10);
   return Number.isFinite(n) ? n : 0;
@@ -53,7 +44,7 @@ interface PropertyFormData {
   city: string;
   state: string;
   zipCode: string;
-  propertyType: string; // Use "House" | "Apartment" | ...
+  propertyType: string; // "House" | "Apartment" | ...
   isForSale: boolean;
   isForRent: boolean;
   price: string;
@@ -86,7 +77,7 @@ const AddProperty = () => {
     city: "",
     state: "",
     zipCode: "",
-    propertyType: "", // keep empty until chosen
+    propertyType: "",
     isForSale: true,
     isForRent: false,
     price: "",
@@ -125,7 +116,6 @@ const AddProperty = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic front-end guardrails
     if (!formData.title.trim()) {
       toast({
         title: "Missing title",
@@ -148,10 +138,9 @@ const AddProperty = () => {
 
       const clean = trimAll(formData);
 
-      // Build payload with numbers for numeric fields
+      // Coerce numeric fields; keep booleans as-is
       const payload = {
         ...clean,
-        propertyType: clean.propertyType, // "House" | "Apartment" | ...
         price: toFloat(clean.price),
         bedrooms: toInt(clean.bedrooms),
         bathrooms: toInt(clean.bathrooms),
@@ -161,17 +150,27 @@ const AddProperty = () => {
         longitude: toFloat(clean.longitude),
       };
 
-      await axios.post(`${API}/api/Property/PostProperty`, payload, {
-        headers: { "Content-Type": "application/json" },
+      // Centralized API builder; works in dev (proxy) & prod (VITE_API_URL)
+      const url = apiUrl("api/Property/PostProperty");
+
+      await axios.post(url, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
       });
 
       toast({ title: "Success", description: "Property added successfully!" });
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting property:", error);
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to add property. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to add property. Please try again.",
+        description: msg,
         variant: "destructive",
       });
     } finally {
@@ -179,7 +178,7 @@ const AddProperty = () => {
     }
   };
 
-  // shared field classes for dark theme
+  // shared field classes for dark theme (unchanged)
   const field =
     "bg-[#0b1220] text-slate-200 placeholder:text-slate-500 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 

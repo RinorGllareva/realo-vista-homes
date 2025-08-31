@@ -4,6 +4,7 @@ import axios from "axios";
 import { ImSortAlphaAsc, ImSortAlphaDesc } from "react-icons/im";
 import { MdSortByAlpha } from "react-icons/md";
 import PropertyCard from "./PropertyCard";
+import { apiUrl } from "@/lib/api";
 
 interface Property {
   propertyId: string | number;
@@ -35,8 +36,6 @@ interface PropertyListProps {
 }
 
 /* ---------------- helpers ---------------- */
-const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
-
 function normalizeToArray(raw: unknown): Property[] {
   if (Array.isArray(raw)) return raw as Property[];
   if (!raw || typeof raw !== "object") return [];
@@ -62,26 +61,23 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [sortOrder, setSortOrder] = useState<0 | 1 | 2>(0); // 0: none, 1: asc, 2: desc
 
-  // Fetch all properties
+  // Fetch all properties (API call centralized via apiUrl)
   useEffect(() => {
     const ac = new AbortController();
 
     (async () => {
       try {
-        const url = API_BASE
-          ? `${API_BASE}/api/Property/GetProperties`
-          : `/api/Property/GetProperties`;
-        const { data } = await axios.get(url, {
+        const url = apiUrl("/api/Property/GetProperties");
+        const res = await axios.get(url, {
           headers: { Accept: "application/json" },
           signal: ac.signal,
         });
-        setProperties(normalizeToArray(data));
-      } catch (e: any) {
-        // ignore cancellations; log others and keep UI safe
-        if (e?.name !== "CanceledError" && e?.code !== "ERR_CANCELED") {
-          console.error("Error fetching properties:", e);
-          setProperties([]);
-        }
+        setProperties(normalizeToArray(res.data));
+      } catch (error: any) {
+        if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED")
+          return;
+        console.error("Error fetching properties:", error);
+        setProperties([]); // keep UI safe
       }
     })();
 

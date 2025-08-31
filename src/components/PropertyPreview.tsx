@@ -6,6 +6,7 @@ import { IoBedOutline } from "react-icons/io5";
 import { PiBathtub } from "react-icons/pi";
 import { MdSquareFoot, MdMeetingRoom } from "react-icons/md";
 import { SiLevelsdotfyi } from "react-icons/si";
+import { apiUrl } from "@/lib/api";
 
 interface Property {
   propertyId: string | number;
@@ -57,28 +58,35 @@ const PropertyPreview: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
 
   useEffect(() => {
-    const abort = new AbortController();
-
-    async function fetchProps() {
+    const ac = new AbortController();
+    (async () => {
       try {
-        const url = API_BASE
-          ? `${API_BASE}/api/Property/GetProperties`
-          : `/api/Property/GetProperties`;
-        const { data } = await axios.get(url, {
+        const res = await axios.get(apiUrl("api/Property/GetProperties"), {
           headers: { Accept: "application/json" },
-          signal: abort.signal,
+          signal: ac.signal,
         });
-        setProperties(normalizeToArray(data));
+
+        const ct = String(res.headers?.["content-type"] || "");
+        if (!ct.includes("application/json")) {
+          console.error(
+            "Expected JSON but got",
+            ct,
+            "from",
+            res.request?.responseURL
+          );
+          setProperties([]); // keep UI safe
+          return;
+        }
+
+        setProperties(normalizeToArray(res.data));
       } catch (e: any) {
         if (e?.name !== "CanceledError" && e?.code !== "ERR_CANCELED") {
           console.error("Error fetching properties:", e);
           setProperties([]);
         }
       }
-    }
-
-    fetchProps();
-    return () => abort.abort();
+    })();
+    return () => ac.abort();
   }, []);
 
   const getTypeLabel = (t: string) => {

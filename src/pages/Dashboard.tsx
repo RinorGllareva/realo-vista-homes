@@ -28,7 +28,7 @@ import {
   Square,
   MapPin,
 } from "lucide-react";
-import { API as API_BASE } from "@/lib/api";
+import { apiUrl } from "@/lib/api";
 
 interface Property {
   propertyId: number;
@@ -63,17 +63,6 @@ interface Property {
   interiorVideo: string;
 }
 
-/* ----------------- helpers ----------------- */
-const requestUrl = `${API_BASE}/api/Property/GetProperties`;
-const res = await axios.get(requestUrl);
-
-// OPTIONAL: debug guard while you’re fixing the proxy/CORS
-const ct = String(res.headers?.["content-type"] || "");
-if (!ct.includes("application/json")) {
-  console.error("Expected JSON but got", ct, "from", res.request?.responseURL);
-  throw new Error("API did not return JSON");
-}
-
 // ensure we always return an array from any API shape
 function toArray<T = unknown>(v: any, label?: string): T[] {
   if (Array.isArray(v)) return v as T[];
@@ -85,7 +74,7 @@ function toArray<T = unknown>(v: any, label?: string): T[] {
   return [];
 }
 
-const Dashboard = () => {
+const Dashboard: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -96,32 +85,41 @@ const Dashboard = () => {
   useEffect(() => {
     if (sessionStorage.getItem("isAuthenticated") !== "true") {
       navigate("/login");
-    } else {
-      fetchProperties();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
 
-  const fetchProperties = async () => {
-    try {
-      setLoading(true);
-      const url = `${API_BASE}/api/Property/GetProperties`;
-      const res = await axios.get(url, {
-        headers: { Accept: "application/json" },
-      });
-      setProperties(toArray<Property>(res.data, "GetProperties"));
-    } catch (e) {
-      console.error(e);
-      toast({
-        title: "Error",
-        description: "Failed to fetch properties. Please try again.",
-        variant: "destructive",
-      });
-      setProperties([]); // keep it safe for .map/.filter
-    } finally {
-      setLoading(false);
+    const ac = new AbortController();
+
+    async function fetchProperties() {
+      try {
+        setLoading(true);
+        const res = await axios.get(
+          apiUrl("api/Property/GetProperties"), // <<< NOTE the /api/
+          { headers: { Accept: "application/json" }, signal: ac.signal }
+        );
+        const ct = String(res.headers?.["content-type"] || "");
+        if (!ct.includes("application/json"))
+          throw new Error(`Unexpected content-type: ${ct}`);
+        setProperties(toArray<Property>(res.data));
+      } catch (e: any) {
+        if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
+        console.error("GetProperties failed:", e);
+        toast({
+          title: "Error",
+          description: e?.response?.status
+            ? `Failed to fetch properties (HTTP ${e.response.status}).`
+            : "Failed to fetch properties. Please try again.",
+          variant: "destructive",
+        });
+        setProperties([]);
+      } finally {
+        setLoading(false);
+      }
     }
-  };
+
+    fetchProperties();
+    return () => ac.abort();
+  }, [navigate, toast]);
 
   const handleDeleteProperty = (id: number) => {
     setPropertyToDelete(id);
@@ -132,7 +130,7 @@ const Dashboard = () => {
     if (!propertyToDelete) return;
     try {
       await axios.delete(
-        `${API_BASE}/api/Property/DeleteProperty/${propertyToDelete}`
+        apiUrl(`api/Property/DeleteProperty/${propertyToDelete}`)
       );
       setProperties((prev) =>
         prev.filter((p) => p.propertyId !== propertyToDelete)
@@ -142,7 +140,7 @@ const Dashboard = () => {
         description: "Property deleted successfully.",
       });
     } catch (e) {
-      console.error(e);
+      console.error("DeleteProperty failed:", e);
       toast({
         title: "Error",
         description: "Failed to delete property. Please try again.",
@@ -156,6 +154,7 @@ const Dashboard = () => {
 
   const handleEditProperty = (id: number) => navigate(`/edit-property/${id}`);
   const handleManageImages = (id: number) => navigate(`/manage-images/${id}`);
+
   const handleLogout = () => {
     sessionStorage.removeItem("isAuthenticated");
     navigate("/login");
@@ -171,8 +170,7 @@ const Dashboard = () => {
     }).format(n);
   };
 
-  // always work with a guaranteed array
-  const list = toArray<Property>(properties, "properties");
+  const list = toArray<Property>(properties);
 
   return (
     <div className="min-h-screen bg-[#0b1220] text-slate-200 p-6">
