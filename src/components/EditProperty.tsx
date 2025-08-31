@@ -18,13 +18,12 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import { apiUrl } from "@/lib/api";
 
+/* ---------------- types ---------------- */
 interface PropertyFormData {
   title: string;
   description: string;
   address: string;
   city: string;
-  state: string;
-  zipCode: string;
   propertyType: string;
   isForSale: boolean;
   isForRent: boolean;
@@ -32,38 +31,30 @@ interface PropertyFormData {
   bedrooms: string;
   bathrooms: string;
   squareFeet: string;
-  isAvailable: boolean;
-  orientation: string;
   furniture: string;
-  heatingSystem: string;
-  additionalFeatures: string;
   hasOwnershipDocument: boolean;
-  spaces: string;
-  floorLevel: string;
-  country: string;
-  neighborhood: string;
-  builder: string;
-  complex: string;
   latitude: string;
   longitude: string;
-  exteriorVideo: string;
-  interiorVideo: string;
 }
 
-const toObject = (raw: any): Record<string, any> => {
-  if (raw && typeof raw === "object") return raw;
-  return {};
-};
+/* --------------- helpers ---------------- */
+const toObject = (raw: any): Record<string, any> =>
+  raw && typeof raw === "object" ? raw : {};
 
+const field =
+  "bg-[#0b1220] text-slate-200 placeholder:text-slate-500 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
+
+/* --------------- component --------------- */
 const EditProperty = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
   const [formData, setFormData] = useState<PropertyFormData>({
     title: "",
     description: "",
     address: "",
     city: "",
-    state: "",
-    zipCode: "",
     propertyType: "",
     isForSale: true,
     isForRent: false,
@@ -71,32 +62,14 @@ const EditProperty = () => {
     bedrooms: "",
     bathrooms: "",
     squareFeet: "",
-    isAvailable: true,
-    orientation: "",
     furniture: "",
-    heatingSystem: "",
-    additionalFeatures: "",
     hasOwnershipDocument: true,
-    spaces: "",
-    floorLevel: "",
-    country: "",
-    neighborhood: "",
-    builder: "",
-    complex: "",
     latitude: "",
     longitude: "",
-    exteriorVideo: "",
-    interiorVideo: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  // shared dark-field classes
-  const field =
-    "bg-[#0b1220] text-slate-200 placeholder:text-slate-500 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 
   useEffect(() => {
     if (!id) return;
@@ -109,38 +82,24 @@ const EditProperty = () => {
           headers: { Accept: "application/json" },
           signal: ac.signal,
         });
-        const data = toObject(res.data);
+        const d = toObject(res.data);
 
         setFormData({
-          title: data.title ?? "",
-          description: data.description ?? "",
-          address: data.address ?? "",
-          city: data.city ?? "",
-          state: data.state ?? "",
-          zipCode: data.zipCode ?? "",
-          propertyType: data.propertyType ?? "",
-          isForSale: !!data.isForSale,
-          isForRent: !!data.isForRent,
-          price: (data.price ?? "").toString(),
-          bedrooms: (data.bedrooms ?? "").toString(),
-          bathrooms: (data.bathrooms ?? "").toString(),
-          squareFeet: (data.squareFeet ?? "").toString(),
-          isAvailable: !!data.isAvailable,
-          orientation: data.orientation ?? "",
-          furniture: data.furniture ?? "",
-          heatingSystem: data.heatingSystem ?? "",
-          additionalFeatures: data.additionalFeatures ?? "",
-          hasOwnershipDocument: !!data.hasOwnershipDocument,
-          spaces: (data.spaces ?? "").toString(),
-          floorLevel: (data.floorLevel ?? "").toString(),
-          country: data.country ?? "",
-          neighborhood: data.neighborhood ?? "",
-          builder: data.builder ?? "",
-          complex: data.complex ?? "",
-          latitude: (data.latitude ?? "").toString(),
-          longitude: (data.longitude ?? "").toString(),
-          exteriorVideo: data.exteriorVideo ?? "",
-          interiorVideo: data.interiorVideo ?? "",
+          title: d.title ?? "",
+          description: d.description ?? "",
+          address: d.address ?? "",
+          city: d.city ?? "",
+          propertyType: d.propertyType ?? "",
+          isForSale: !!d.isForSale,
+          isForRent: !!d.isForRent,
+          price: (d.price ?? "").toString(),
+          bedrooms: (d.bedrooms ?? "").toString(),
+          bathrooms: (d.bathrooms ?? "").toString(),
+          squareFeet: (d.squareFeet ?? "").toString(),
+          furniture: d.furniture ?? "",
+          hasOwnershipDocument: !!d.hasOwnershipDocument,
+          latitude: (d.latitude ?? "").toString(),
+          longitude: (d.longitude ?? "").toString(),
         });
       } catch (e: any) {
         if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
@@ -158,12 +117,15 @@ const EditProperty = () => {
     return () => ac.abort();
   }, [id, toast]);
 
-  const handleChange = (name: string, value: string | boolean) =>
-    setFormData((p) => ({ ...p, [name]: value }));
+  const handleChange = (
+    name: keyof PropertyFormData,
+    value: string | boolean
+  ) => setFormData((p) => ({ ...p, [name]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
+
     try {
       setLoading(true);
       const url = apiUrl(`api/Property/PutProperty/${id}`);
@@ -172,11 +134,12 @@ const EditProperty = () => {
         url,
         {
           ...formData,
-          // server may expect numbers (coerce safely)
+          // backend expects numbers for these:
+          price: (formData.price ?? "").toString().trim(),
+          // numeric coercions
           bedrooms: parseInt(formData.bedrooms) || 0,
           bathrooms: parseInt(formData.bathrooms) || 0,
           squareFeet: parseFloat(formData.squareFeet) || 0,
-          spaces: parseInt(formData.spaces) || 0,
           latitude: parseFloat(formData.latitude) || 0,
           longitude: parseFloat(formData.longitude) || 0,
         },
@@ -268,11 +231,13 @@ const EditProperty = () => {
                         <SelectValue placeholder="Select property type" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#0b1220] text-slate-200 border-slate-700">
-                        <SelectItem value="house">House</SelectItem>
-                        <SelectItem value="apartment">Apartment</SelectItem>
-                        <SelectItem value="condo">Condo</SelectItem>
-                        <SelectItem value="townhouse">Townhouse</SelectItem>
-                        <SelectItem value="commercial">Commercial</SelectItem>
+                        <SelectItem value="House">House</SelectItem>
+                        <SelectItem value="Apartment">Apartment</SelectItem>
+                        <SelectItem value="Land">Land</SelectItem>
+                        <SelectItem value="Store">Store</SelectItem>
+                        <SelectItem value="Warehouse">Warehouse</SelectItem>
+                        <SelectItem value="Building">Building</SelectItem>
+                        <SelectItem value="Office">Office</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -300,30 +265,31 @@ const EditProperty = () => {
                 <h3 className="text-lg font-semibold text-slate-100">
                   Location
                 </h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {[
-                    ["address", "Address", "123 Main St"],
-                    ["city", "City", "Prishtinë"],
-                    ["state", "State", "KP"],
-                    ["zipCode", "Zip Code", "10000"],
-                    ["country", "Country", "Kosova"],
-                    ["neighborhood", "Neighborhood", "Downtown"],
-                  ].map(([key, label, ph]) => (
-                    <div key={key} className="space-y-2">
-                      <Label htmlFor={key as string} className="text-slate-300">
-                        {label}
-                      </Label>
-                      <Input
-                        id={key as string}
-                        className={field}
-                        value={(formData as any)[key as string]}
-                        onChange={(e) =>
-                          handleChange(key as string, e.target.value)
-                        }
-                        placeholder={ph as string}
-                      />
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="text-slate-300">
+                      Address
+                    </Label>
+                    <Input
+                      id="address"
+                      className={field}
+                      value={formData.address}
+                      onChange={(e) => handleChange("address", e.target.value)}
+                      placeholder="123 Main St"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-slate-300">
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      className={field}
+                      value={formData.city}
+                      onChange={(e) => handleChange("city", e.target.value)}
+                      placeholder="Prishtinë"
+                    />
+                  </div>
                 </div>
               </section>
 
@@ -333,56 +299,109 @@ const EditProperty = () => {
                   Property Details
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  {[
-                    ["price", "Price", "500000", "text"],
-                    ["bedrooms", "Bedrooms", "3", "number"],
-                    ["bathrooms", "Bathrooms", "2", "number"],
-                    ["squareFeet", "Square Feet", "1500", "number"],
-                  ].map(([key, label, ph, type]) => (
-                    <div key={key} className="space-y-2">
-                      <Label htmlFor={key as string} className="text-slate-300">
-                        {label}
-                      </Label>
-                      <Input
-                        id={key as string}
-                        type={type as string}
-                        className={field}
-                        value={(formData as any)[key as string]}
-                        onChange={(e) =>
-                          handleChange(key as string, e.target.value)
-                        }
-                        placeholder={ph as string}
-                      />
-                    </div>
-                  ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="price" className="text-slate-300">
+                      Price
+                    </Label>
+                    <Input
+                      id="price"
+                      className={field}
+                      value={formData.price}
+                      onChange={(e) => handleChange("price", e.target.value)}
+                      placeholder="500000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bedrooms" className="text-slate-300">
+                      Bedrooms
+                    </Label>
+                    <Input
+                      id="bedrooms"
+                      type="number"
+                      className={field}
+                      value={formData.bedrooms}
+                      onChange={(e) => handleChange("bedrooms", e.target.value)}
+                      placeholder="3"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bathrooms" className="text-slate-300">
+                      Bathrooms
+                    </Label>
+                    <Input
+                      id="bathrooms"
+                      type="number"
+                      className={field}
+                      value={formData.bathrooms}
+                      onChange={(e) =>
+                        handleChange("bathrooms", e.target.value)
+                      }
+                      placeholder="2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="squareFeet" className="text-slate-300">
+                      Square Feet
+                    </Label>
+                    <Input
+                      id="squareFeet"
+                      type="number"
+                      className={field}
+                      value={formData.squareFeet}
+                      onChange={(e) =>
+                        handleChange("squareFeet", e.target.value)
+                      }
+                      placeholder="1500"
+                    />
+                  </div>
                 </div>
               </section>
 
-              {/* Status & Availability */}
+              {/* Status */}
               <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-100">
-                  Status & Availability
-                </h3>
+                <h3 className="text-lg font-semibold text-slate-100">Status</h3>
                 <div className="flex flex-wrap gap-6">
-                  {[
-                    ["isForSale", "For Sale"],
-                    ["isForRent", "For Rent"],
-                    ["isAvailable", "Available"],
-                    ["hasOwnershipDocument", "Has Ownership Document"],
-                  ].map(([key, label]) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      <Switch
-                        id={key}
-                        checked={(formData as any)[key]}
-                        onCheckedChange={(checked) =>
-                          handleChange(key, checked)
-                        }
-                      />
-                      <Label htmlFor={key} className="text-slate-300">
-                        {label}
-                      </Label>
-                    </div>
-                  ))}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isForSale"
+                      checked={formData.isForSale}
+                      onCheckedChange={(checked) => {
+                        handleChange("isForSale", checked);
+                        if (checked) handleChange("isForRent", false);
+                      }}
+                    />
+                    <Label htmlFor="isForSale" className="text-slate-300">
+                      For Sale
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isForRent"
+                      checked={formData.isForRent}
+                      onCheckedChange={(checked) => {
+                        handleChange("isForRent", checked);
+                        if (checked) handleChange("isForSale", false);
+                      }}
+                    />
+                    <Label htmlFor="isForRent" className="text-slate-300">
+                      For Rent
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="hasOwnershipDocument"
+                      checked={formData.hasOwnershipDocument}
+                      onCheckedChange={(checked) =>
+                        handleChange("hasOwnershipDocument", checked)
+                      }
+                    />
+                    <Label
+                      htmlFor="hasOwnershipDocument"
+                      className="text-slate-300"
+                    >
+                      Has Ownership Document
+                    </Label>
+                  </div>
                 </div>
               </section>
 
@@ -392,81 +411,59 @@ const EditProperty = () => {
                   Additional Details
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {[
-                    ["orientation", "Orientation", "North-facing"],
-                    ["furniture", "Furniture", "Fully furnished"],
-                    ["heatingSystem", "Heating System", "Central heating"],
-                    ["floorLevel", "Floor Level", "Ground floor"],
-                    ["spaces", "Parking Spaces", "2", "number"],
-                    ["builder", "Builder", "ABC Construction"],
-                  ].map(([key, label, ph, type]) => (
-                    <div key={key} className="space-y-2">
-                      <Label htmlFor={key as string} className="text-slate-300">
-                        {label}
-                      </Label>
-                      <Input
-                        id={key as string}
-                        type={(type as string) || "text"}
-                        className={field}
-                        value={(formData as any)[key as string]}
-                        onChange={(e) =>
-                          handleChange(key as string, e.target.value)
-                        }
-                        placeholder={ph as string}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="additionalFeatures"
-                    className="text-slate-300"
-                  >
-                    Additional Features
-                  </Label>
-                  <Textarea
-                    id="additionalFeatures"
-                    className={`${field} min-h-[90px]`}
-                    value={formData.additionalFeatures}
-                    onChange={(e) =>
-                      handleChange("additionalFeatures", e.target.value)
-                    }
-                    placeholder="Pool, garden, garage..."
-                    rows={2}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="furniture" className="text-slate-300">
+                      Furniture
+                    </Label>
+                    <Input
+                      id="furniture"
+                      className={field}
+                      value={formData.furniture}
+                      onChange={(e) =>
+                        handleChange("furniture", e.target.value)
+                      }
+                      placeholder="Fully furnished"
+                    />
+                  </div>
                 </div>
               </section>
 
-              {/* Coordinates & Media */}
+              {/* Coordinates */}
               <section className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-100">
-                  Coordinates & Media
+                  Coordinates
                 </h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  {[
-                    ["latitude", "Latitude", "40.7128", "number"],
-                    ["longitude", "Longitude", "-74.0060", "number"],
-                    ["exteriorVideo", "Exterior Video URL", "https://..."],
-                    ["interiorVideo", "Interior Video URL", "https://..."],
-                  ].map(([key, label, ph, type]) => (
-                    <div key={key} className="space-y-2">
-                      <Label htmlFor={key as string} className="text-slate-300">
-                        {label}
-                      </Label>
-                      <Input
-                        id={key as string}
-                        type={(type as string) || "text"}
-                        step={type === "number" ? "any" : undefined}
-                        className={field}
-                        value={(formData as any)[key as string]}
-                        onChange={(e) =>
-                          handleChange(key as string, e.target.value)
-                        }
-                        placeholder={ph as string}
-                      />
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="latitude" className="text-slate-300">
+                      Latitude
+                    </Label>
+                    <Input
+                      id="latitude"
+                      type="number"
+                      step="any"
+                      className={field}
+                      value={formData.latitude}
+                      onChange={(e) => handleChange("latitude", e.target.value)}
+                      placeholder="42.6629"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="longitude" className="text-slate-300">
+                      Longitude
+                    </Label>
+                    <Input
+                      id="longitude"
+                      type="number"
+                      step="any"
+                      className={field}
+                      value={formData.longitude}
+                      onChange={(e) =>
+                        handleChange("longitude", e.target.value)
+                      }
+                      placeholder="21.1655"
+                    />
+                  </div>
                 </div>
               </section>
 

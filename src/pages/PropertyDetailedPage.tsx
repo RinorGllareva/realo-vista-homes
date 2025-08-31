@@ -7,50 +7,40 @@ import "slick-carousel/slick/slick-theme.css";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { IoBedOutline } from "react-icons/io5";
 import { PiBathtub } from "react-icons/pi";
-import { MdSquareFoot, MdMeetingRoom } from "react-icons/md";
-import { SiLevelsdotfyi } from "react-icons/si";
+import { MdSquareFoot } from "react-icons/md";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api";
 
+/* -------------------- types -------------------- */
 interface ImgObj {
   imageUrl: string;
 }
 
 interface Property {
-  propertyId: string;
+  propertyId: string | number;
   title: string;
   city: string;
   price: number | string;
   propertyType: string;
   isForSale: boolean;
+  // optional (kept ones)
   description?: string;
   address?: string;
-  state?: string;
-  zipCode?: string;
   bedrooms?: number;
   bathrooms?: number;
-  floorLevel?: number | string;
   squareFeet?: number;
-  spaces?: number;
-  orientation?: string;
-  heatingSystem?: string;
   furniture?: string;
-  additionalFeatures?: string;
   hasOwnershipDocument?: boolean;
-  neighborhood?: string;
-  builder?: string;
-  complex?: string;
-  country?: string;
   latitude?: number;
   longitude?: number;
-  interiorVideo?: string;
+  // images (can be many shapes)
   images?: ImgObj[] | ImgObj | string | null;
 }
 
-/* ---------------------- helpers (logic only) ---------------------- */
+/* ----------------- helpers (logic only) ----------------- */
 const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 const API_ORIGIN = API_BASE
   ? new URL(API_BASE).origin
@@ -102,12 +92,9 @@ const toArray = (raw: any): any[] => {
 };
 
 function normalizeImages(x: unknown): ImgObj[] {
-  // supports: array, single object, comma-separated string, or nested lists
   if (Array.isArray(x)) {
     return (x as any[])
-      .map((it, i) => ({
-        imageUrl: toAbsoluteUrl(extractUrl(it) || ""),
-      }))
+      .map((it) => ({ imageUrl: toAbsoluteUrl(extractUrl(it) || "") }))
       .filter((it) => it.imageUrl);
   }
   if (x && typeof x === "object") {
@@ -144,7 +131,7 @@ function pickOne<T>(v: unknown): T | null {
   }
   return (v as T) ?? null;
 }
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------- */
 
 const PropertyDetailedPage = () => {
   const navigate = useNavigate();
@@ -153,23 +140,9 @@ const PropertyDetailedPage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const sliderRef = useRef<Slider>(null);
-  const virtualPortRef = useRef<HTMLDivElement>(null);
 
-  const scrollToVirtualTour = () => {
-    virtualPortRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleContactClick = () => {
-    navigate("/contact-us");
-  };
-
-  const scrollLeft = () => {
-    sliderRef.current?.slickPrev();
-  };
-
-  const scrollRight = () => {
-    sliderRef.current?.slickNext();
-  };
+  const scrollLeft = () => sliderRef.current?.slickPrev();
+  const scrollRight = () => sliderRef.current?.slickNext();
 
   useEffect(() => {
     const ac = new AbortController();
@@ -182,10 +155,8 @@ const PropertyDetailedPage = () => {
           signal: ac.signal,
         });
 
-        // Some APIs return a list/special shapes; pick one robustly
         let p = pickOne<Property>(data) ?? (data as Property);
 
-        // Normalize images: handle arrays, objects, strings, nested $values, etc.
         const imgs =
           normalizeImages((p as any)?.images) ||
           normalizeImages((p as any)?.propertyImages) ||
@@ -237,117 +208,21 @@ const PropertyDetailedPage = () => {
     setIsOpen(true);
   };
 
-  const renderIcons = () => {
-    const type = (property.propertyType || "").toLowerCase();
-
-    switch (type) {
-      case "house":
-        return (
-          <>
-            <span className="flex items-center gap-2 text-foreground">
-              <IoBedOutline className="text-xl" /> {property.bedrooms ?? "-"}{" "}
-              Dhoma
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <PiBathtub className="text-xl" /> {property.bathrooms ?? "-"}{" "}
-              Banjo
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" />{" "}
-              {property.floorLevel ?? "-"} Katet
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
-              m²
-            </span>
-          </>
-        );
-
-      case "apartment":
-        return (
-          <>
-            <span className="flex items-center gap-2 text-foreground">
-              <IoBedOutline className="text-xl" /> {property.bedrooms ?? "-"}{" "}
-              Dhoma
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <PiBathtub className="text-xl" /> {property.bathrooms ?? "-"}{" "}
-              Banjo
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" />{" "}
-              {property.floorLevel ?? "-"} Kati
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
-              m²
-            </span>
-          </>
-        );
-
-      case "office":
-      case "store":
-        return (
-          <>
-            <span className="flex items-center gap-2 text-foreground">
-              <MdMeetingRoom className="text-xl" /> {property.spaces ?? "-"}{" "}
-              Hapësira
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <PiBathtub className="text-xl" /> {property.bathrooms ?? "-"}{" "}
-              Banjo
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" />{" "}
-              {property.floorLevel ?? "-"} Kati
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
-              m²
-            </span>
-          </>
-        );
-
-      case "land":
-        return (
-          <span className="flex items-center gap-2 text-foreground">
-            <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"} m²
-          </span>
-        );
-
-      case "building":
-        return (
-          <>
-            <span className="flex items-center gap-2 text-foreground">
-              <MdMeetingRoom className="text-xl" /> {property.spaces ?? "-"}{" "}
-              Hapësira
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <SiLevelsdotfyi className="text-xl" />{" "}
-              {property.floorLevel ?? "-"} Kati
-            </span>
-            <span className="text-muted-foreground">|</span>
-            <span className="flex items-center gap-2 text-foreground">
-              <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"}{" "}
-              m²
-            </span>
-          </>
-        );
-
-      default:
-        return null;
-    }
-  };
+  const renderIcons = () => (
+    <>
+      <span className="flex items-center gap-2 text-foreground">
+        <IoBedOutline className="text-xl" /> {property.bedrooms ?? "-"} Dhoma
+      </span>
+      <span className="text-muted-foreground">|</span>
+      <span className="flex items-center gap-2 text-foreground">
+        <PiBathtub className="text-xl" /> {property.bathrooms ?? "-"} Banjo
+      </span>
+      <span className="text-muted-foreground">|</span>
+      <span className="flex items-center gap-2 text-foreground">
+        <MdSquareFoot className="text-xl" /> {property.squareFeet ?? "-"} m²
+      </span>
+    </>
+  );
 
   const priceText =
     typeof property.price === "number"
@@ -411,8 +286,6 @@ const PropertyDetailedPage = () => {
               alt={`Property ${photoIndex + 1}`}
               className="w-full h-auto max-h-[80vh] object-contain"
             />
-
-            {/* Navigation arrows */}
             <button
               onClick={() =>
                 setPhotoIndex((photoIndex + images.length - 1) % images.length)
@@ -427,8 +300,6 @@ const PropertyDetailedPage = () => {
             >
               <IoIosArrowForward />
             </button>
-
-            {/* Image counter */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded">
               {photoIndex + 1} / {images.length}
             </div>
@@ -439,7 +310,7 @@ const PropertyDetailedPage = () => {
       {/* Navigation Bar */}
       <div className="bg-slate-600 text-white px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4 -mt-8 relative z-20">
         <Button
-          onClick={handleContactClick}
+          onClick={() => navigate("/contact-us")}
           className="bg-real-estate-secondary hover:bg-real-estate-secondary/90 text-black font-title font-bold"
         >
           Book A Viewing
@@ -451,15 +322,6 @@ const PropertyDetailedPage = () => {
           >
             DETAJET
           </a>
-          {property.interiorVideo && (
-            <a
-              href="#virtual-tour"
-              onClick={scrollToVirtualTour}
-              className="hover:text-real-estate-secondary transition-colors cursor-pointer"
-            >
-              VIRTUAL TOUR
-            </a>
-          )}
         </div>
       </div>
 
@@ -480,21 +342,17 @@ const PropertyDetailedPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-text">
               <div className="space-y-3">
-                {property.address &&
-                  property.city &&
-                  property.state &&
-                  property.zipCode && (
-                    <p>
-                      <strong className="text-foreground">Adresa:</strong>{" "}
-                      {property.address}, {property.city}, {property.state},{" "}
-                      {property.zipCode}
-                    </p>
-                  )}
-                {property.bedrooms && (
+                {property.address && property.city && (
+                  <p>
+                    <strong className="text-foreground">Adresa:</strong>{" "}
+                    {property.address}, {property.city}
+                  </p>
+                )}
+                {property.bedrooms !== undefined && (
                   <p>
                     <strong className="text-foreground">Dhomat:</strong>{" "}
                     {property.bedrooms}
-                    {property.bathrooms && (
+                    {property.bathrooms !== undefined && (
                       <>
                         {" | "}
                         <strong className="text-foreground">
@@ -505,99 +363,29 @@ const PropertyDetailedPage = () => {
                     )}
                   </p>
                 )}
-                {property.squareFeet && (
+                {property.squareFeet !== undefined && (
                   <p>
-                    <strong className="text-foreground">Siperfaqja:</strong>{" "}
+                    <strong className="text-foreground">Sipërfaqja:</strong>{" "}
                     {property.squareFeet} m²
                   </p>
                 )}
-                {property.orientation &&
-                  property.orientation !== "N/A" &&
-                  property.orientation !== "string" && (
-                    <p>
-                      <strong className="text-foreground">Orientimi:</strong>{" "}
-                      {property.orientation}
-                    </p>
-                  )}
-                {property.heatingSystem &&
-                  property.heatingSystem !== "N/A" &&
-                  property.heatingSystem !== "string" && (
-                    <p>
-                      <strong className="text-foreground">
-                        Sistemi i Ngrohjes:
-                      </strong>{" "}
-                      {property.heatingSystem}
-                    </p>
-                  )}
-                {property.furniture &&
-                  property.furniture !== "N/A" &&
-                  property.furniture !== "string" && (
-                    <p>
-                      <strong className="text-foreground">Mobile:</strong>{" "}
-                      {property.furniture}
-                    </p>
-                  )}
+                {property.furniture && property.furniture !== "N/A" && (
+                  <p>
+                    <strong className="text-foreground">Mobilimi:</strong>{" "}
+                    {property.furniture}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3">
                 {property.hasOwnershipDocument !== undefined && (
                   <p>
-                    <strong className="text-foreground">Fleta Poseduse:</strong>{" "}
+                    <strong className="text-foreground">
+                      Fleta Poseduese:
+                    </strong>{" "}
                     {property.hasOwnershipDocument ? "Po" : "Jo"}
                   </p>
                 )}
-                {property.floorLevel &&
-                  property.floorLevel !== "N/A" &&
-                  property.floorLevel !== "string" && (
-                    <p>
-                      <strong className="text-foreground">Kati:</strong>{" "}
-                      {property.floorLevel}
-                    </p>
-                  )}
-                {property.neighborhood &&
-                  property.neighborhood !== "N/A" &&
-                  property.neighborhood !== "string" && (
-                    <p>
-                      <strong className="text-foreground">Lagjia:</strong>{" "}
-                      {property.neighborhood}
-                    </p>
-                  )}
-                {property.builder &&
-                  property.builder !== "N/A" &&
-                  property.builder !== "string" && (
-                    <p>
-                      <strong className="text-foreground">Ndertuesit:</strong>{" "}
-                      {property.builder}
-                    </p>
-                  )}
-                {property.complex &&
-                  property.complex !== "N/A" &&
-                  property.complex !== "string" && (
-                    <p>
-                      <strong className="text-foreground">
-                        Kompleksi Banesor:
-                      </strong>{" "}
-                      {property.complex}
-                    </p>
-                  )}
-                {property.country &&
-                  property.country !== "N/A" &&
-                  property.country !== "string" && (
-                    <p>
-                      <strong className="text-foreground">Shteti:</strong>{" "}
-                      {property.country}
-                    </p>
-                  )}
-                {property.additionalFeatures &&
-                  property.additionalFeatures !== "N/A" &&
-                  property.additionalFeatures !== "string" && (
-                    <p>
-                      <strong className="text-foreground">
-                        Vecori të Tjera:
-                      </strong>{" "}
-                      {property.additionalFeatures}
-                    </p>
-                  )}
               </div>
             </div>
           </div>
@@ -610,41 +398,14 @@ const PropertyDetailedPage = () => {
               height="100%"
               frameBorder="0"
               src={`https://www.google.com/maps?q=${
-                property.latitude || 42.6629
-              },${property.longitude || 21.1655}&z=15&output=embed`}
+                property.latitude ?? 42.6629
+              },${property.longitude ?? 21.1655}&z=15&output=embed`}
               allowFullScreen
               className="w-full h-full"
             />
           </div>
         </div>
       </div>
-
-      {/* Virtual Tour */}
-      {property.interiorVideo && (
-        <div
-          id="virtual-tour"
-          ref={virtualPortRef}
-          className="bg-amber-50 px-4 md:px-8 py-8"
-        >
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 text-center">
-              Property Virtual Tour
-            </h2>
-            <hr className="border-gray-300 mb-6 w-24 mx-auto" />
-            <div className="aspect-video rounded-lg overflow-hidden">
-              <iframe
-                src={property.interiorVideo}
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                allowFullScreen
-                title="Virtual Tour"
-                className="w-full h-full"
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>
