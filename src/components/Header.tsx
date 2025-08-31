@@ -77,12 +77,14 @@ const Header = () => {
         <div className="flex justify-between items-center max-w-full mx-0 px-5 pt-5">
           <div
             className={`flex items-center gap-2 cursor-pointer ${
-              scrolled ? "text-real-estate-secondary" : "text-white"
+              scrolled
+                ? "text-real-estate-secondary"
+                : "text-real-estate-secondary"
             }`}
             onClick={handleHomeRedirect}
           >
             <img src={logoImage} alt="REALO Logo" className="w-40" />
-            <h3 className="font-title text-lg text-[#ffd700]">REAL-ESTATE</h3>
+            <h3 className="font-title text-lg font-black">REAL-ESTATE</h3>
           </div>
 
           {/* Navigation Links */}

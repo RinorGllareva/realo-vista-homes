@@ -26,9 +26,9 @@ const AboutSection = () => {
                   RRETH
                   <span className="absolute -bottom-3 left-0 w-16 h-0.5 bg-black"></span>
                 </h2>
-                <div className="font-title text-real-estate-secondary font-black flex items-center gap-1">
+                <div className="font-title text-real-estate-secondary font-black flex items-center gap-2">
                   <h1 className="text-3xl">REALO</h1>
-                  <h3 className="text-2xl">REAL-ESTATE</h3>
+                  <h3 className="text-1xl">REAL-ESTATE</h3>
                 </div>
               </div>
             </div>

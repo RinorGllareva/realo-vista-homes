@@ -35,7 +35,14 @@ const App = () => (
           <Route path="/login" element={<LogInPage />} />
 
           {/* Private */}
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/add-property"
             element={

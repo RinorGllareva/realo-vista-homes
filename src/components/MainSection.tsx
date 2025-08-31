@@ -61,13 +61,13 @@ const MainSection: React.FC = () => {
         "
       >
         <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-4">
-          <h3 className="font-text text-[25px] sm:text-[35px] lg:text-[45px] font-normal text-[#ffd700] max-[480px]:text-[20px] max-[390px]:text-[1.1rem]">
+          <h3 className="font-text text-[25px] sm:text-[35px] lg:text-[45px] font-normal text-real-estate-secondary max-[480px]:text-[20px] max-[390px]:text-[1.1rem]">
             WELCOME TO
           </h3>
-          <h1 className="font-title text-[35px] sm:text-[55px] lg:text-[75px] font-normal text-[#ffd700] max-[480px]:text-[35px] max-[390px]:text-[2rem]">
+          <h1 className="font-title text-[35px] sm:text-[55px] lg:text-[75px] font-normal text-real-estate-secondary max-[480px]:text-[35px] max-[390px]:text-[2rem]">
             REALO
           </h1>
-          <h3 className="font-text text-[25px] sm:text-[35px] lg:text-[45px] font-normal text-[#ffd700] max-[480px]:text-[20px] max-[390px]:text-[1.1rem]">
+          <h3 className="font-text text-[25px] sm:text-[35px] lg:text-[45px] font-normal text-real-estate-secondary max-[480px]:text-[20px] max-[390px]:text-[1.1rem]">
             REAL ESTATE
           </h3>
         </div>

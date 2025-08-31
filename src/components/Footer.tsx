@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logoImage from "../assets/LogoMainSection.png";
 import { GiGalaxy } from "react-icons/gi";
@@ -6,17 +6,39 @@ import { GiGalaxy } from "react-icons/gi";
 const Footer = () => {
   const navigate = useNavigate();
 
-  const handleRedirect = () => {
-    navigate("/contact-us");
+  const handleRedirect = () => navigate("/contact-us");
+  const handleHomeRedirect = () => navigate("/");
+  const handlePropertyRedirect = () => navigate("/Property");
+
+  /* ---------- Secret login trigger ---------- */
+  const [taps, setTaps] = useState(0);
+  const resetTimer = useRef<number | null>(null);
+
+  const handleSecretTap = () => {
+    setTaps((n) => {
+      const next = n + 1;
+      if (next >= 3) {
+        navigate("/login");
+        if (resetTimer.current) window.clearTimeout(resetTimer.current);
+        return 0;
+      }
+      if (resetTimer.current) window.clearTimeout(resetTimer.current);
+      resetTimer.current = window.setTimeout(() => setTaps(0), 2000);
+      return next;
+    });
   };
 
-  const handleHomeRedirect = () => {
-    navigate("/");
-  };
-
-  const handlePropertyRedirect = () => {
-    navigate("/Property");
-  };
+  // OPTIONAL: Ctrl+Shift+L to go to /login
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "l") {
+        navigate("/login");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navigate]);
+  /* ----------------------------------------- */
 
   return (
     <footer className="w-full font-text py-10 text-lg bg-real-estate-primary text-real-estate-secondary">
@@ -100,6 +122,14 @@ const Footer = () => {
           </p>
         </div>
       </div>
+
+      {/* Secret, non-intrusive button: fixed so it doesn't affect layout */}
+      <button
+        onClick={handleSecretTap}
+        aria-label="open admin"
+        title=" "
+        className="fixed bottom-3 right-3 h-6 w-6 rounded-full opacity-0 hover:opacity-20 focus:opacity-20 transition-opacity"
+      />
     </footer>
   );
 };
