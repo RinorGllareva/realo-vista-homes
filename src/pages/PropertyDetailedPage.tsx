@@ -331,7 +331,7 @@ const PropertyDetailedPage = () => {
           {/* Description */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl md:text-3xl font-logo font-bold text-foreground mb-4">
+              <h2 className="text-2xl md:text-3xl font-text font-bold text-foreground mb-4">
                 Informatat e Pronës
               </h2>
               <hr className="border-gray-300 mb-4" />

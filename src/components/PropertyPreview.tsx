@@ -12,7 +12,7 @@ interface Property {
   propertyId: string | number;
   title: string;
   city: string;
-  price: number | string;
+  price:string;
   propertyType: string;
   isForSale: boolean;
   bedrooms?: number;
@@ -208,7 +208,7 @@ const PropertyPreview: React.FC = () => {
                   {p.title}
                 </p>
                 <p className="font-[Montserrat] text-[20px] text-[#d4b505] font-[200] mt-1">
-                  €{Number(priceNumber || 0).toLocaleString()}
+                  €{p.price}
                 </p>
 
                 <div className="mt-3 flex flex-wrap justify-between gap-0">

@@ -41,7 +41,7 @@ interface Property {
   propertyType: string;
   isForSale: boolean;
   isForRent: boolean;
-  price: number | string;
+  price: string;
   bedrooms: number;
   bathrooms: number;
   squareFeet: number;
@@ -313,7 +313,7 @@ const Dashboard: React.FC = () => {
 
                         {/* price */}
                         <div className="text-2xl font-bold text-blue-400">
-                          {formatPrice(p.price)}
+                          {p.price}
                         </div>
 
                         {/* facts */}
