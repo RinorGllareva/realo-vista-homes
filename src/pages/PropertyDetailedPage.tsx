@@ -245,11 +245,10 @@ const PropertyDetailedPage = () => {
         <meta property="og:image" content={firstImage} />
         <meta
           property="og:url"
-          content={`https://yourdomain.com/property/${property.propertyId}`}
+          content={`https://www.realo-realestate.com/properties/${title}/${property.propertyId}`}
         />
         <meta property="og:type" content="website" />
       </Helmet>
-      <Header />
 
       {/* Property Header */}
       <div className="pt-40 px-4 md:px-16 max-w-6xl mx-auto">
