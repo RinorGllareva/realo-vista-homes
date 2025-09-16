@@ -13,6 +13,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api";
+import { Helmet } from "react-helmet";
 
 /* -------------------- types -------------------- */
 interface ImgObj {
@@ -229,8 +230,25 @@ const PropertyDetailedPage = () => {
       ? property.price.toLocaleString()
       : String(property.price ?? "");
 
+  const firstImage =
+    property.images?.[0]?.imageUrl || "https://yourdomain.com/default.jpg";
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{property.title} | Realo Real Estate</title>
+        <meta property="og:title" content={property.title} />
+        <meta
+          property="og:description"
+          content={property.description?.slice(0, 150)}
+        />
+        <meta property="og:image" content={firstImage} />
+        <meta
+          property="og:url"
+          content={`https://yourdomain.com/property/${property.propertyId}`}
+        />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
 
       {/* Property Header */}

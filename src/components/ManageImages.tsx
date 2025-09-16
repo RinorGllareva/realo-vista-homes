@@ -37,28 +37,14 @@ interface SortableImageProps {
   onDelete: (imageId: number) => void;
 }
 
-// API origin (absolute) for turning relative image paths into absolute URLs.
-const API_ORIGIN = (() => {
-  try {
-    const u = apiUrl("/"); // may be absolute (https://api...) or relative (/api/)
-    if (u.startsWith("http")) return new URL(u).origin;
-    if (typeof window !== "undefined") return window.location.origin;
-  } catch {}
-  return "";
-})();
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+const API_ORIGIN = API_BASE
+  ? new URL(API_BASE).origin
+  : typeof window !== "undefined"
+  ? window.location.origin
+  : "";
 
-const toArray = (raw: any): any[] => {
-  if (Array.isArray(raw)) return raw;
-  if (raw && typeof raw === "object") {
-    if (Array.isArray(raw.$values)) return raw.$values;
-    if (Array.isArray(raw.data)) return raw.data;
-    if (Array.isArray(raw.result)) return raw.result;
-    if (Array.isArray(raw.items)) return raw.items;
-  }
-  return [];
-};
-
-// try to pull a string URL out of many shapes
+// extract a likely URL from many shapes
 const extractUrl = (val: unknown): string => {
   if (!val) return "";
   if (typeof val === "string") return val;
@@ -73,8 +59,7 @@ const extractUrl = (val: unknown): string => {
       const nested = extractUrl(o.imageUrl);
       if (nested) return nested;
     }
-    if (typeof o.Value === "string") return o.Value;
-    if (typeof o.$value === "string") return o.$value;
+    // last resort: first string value on the object
     for (const k of Object.keys(o)) {
       if (typeof o[k] === "string") return o[k];
     }
@@ -91,15 +76,27 @@ const toAbsoluteUrl = (u: string): string => {
   return u;
 };
 
+const toArray = (raw: any): any[] => {
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === "object") {
+    if (Array.isArray(raw.$values)) return raw.$values;
+    if (Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw.items)) return raw.items;
+    if (Array.isArray(raw.result)) return raw.result;
+  }
+  return [];
+};
+
 const normalizeImages = (raw: any, propertyId: number): PropertyImage[] =>
-  toArray(raw).map((it: any, idx: number) => {
+  toArray(raw).map((it: any) => {
     const url = toAbsoluteUrl(extractUrl(it));
     return {
-      imageId: Number(it?.imageId ?? it?.id ?? idx + 1),
+      imageId: Number(it?.imageId ?? it?.ImageId), // 👈 use DB ImageId
       imageUrl: url,
-      propertyId: Number(it?.propertyId ?? propertyId),
+      propertyId: Number(it?.propertyId ?? it?.PropertyId ?? propertyId),
     };
   });
+
 /* ------------------------------------------------ */
 
 const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
@@ -110,7 +107,9 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: image.imageId });
+  } = useSortable({
+    id: String(image.imageId ?? image.imageUrl ?? Math.random().toString()),
+  });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -118,12 +117,13 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
     opacity: isDragging ? 0.6 : 1,
   };
 
-  const short = (u: string) => {
+  const short = (u?: string) => {
+    if (!u) return "";
     try {
       const url = new URL(u);
       return `${url.hostname}${url.pathname}`;
     } catch {
-      return u.slice(0, 70);
+      return u.substring(0, 70);
     }
   };
 
@@ -135,8 +135,8 @@ const SortableImage: React.FC<SortableImageProps> = ({ image, onDelete }) => {
     >
       <div className="aspect-video relative">
         <img
-          src={image.imageUrl}
-          alt={`Property ${image.imageId}`}
+          src={image.imageUrl || ""}
+          alt={`Property ${image.imageId ?? "image"}`}
           className="w-full h-full object-cover"
           onError={(e) => {
             (e.target as HTMLImageElement).src =
@@ -187,7 +187,7 @@ const ManageImages: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        const url = apiUrl(`api/Property/GetPropertyImages/${id}`);
+        const url = apiUrl(`/api/Property/GetPropertyImages/${id}`);
         const { data } = await axios.get(url, {
           headers: { Accept: "application/json" },
           signal: ac.signal,
@@ -202,27 +202,7 @@ const ManageImages: React.FC = () => {
           description: "Failed to fetch property images. Please try again.",
           variant: "destructive",
         });
-        // Optional fallback demo content:
-        setImages([
-          {
-            imageId: 1,
-            imageUrl:
-              "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=1200",
-            propertyId: Number(id),
-          },
-          {
-            imageId: 2,
-            imageUrl:
-              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200",
-            propertyId: Number(id),
-          },
-          {
-            imageId: 3,
-            imageUrl:
-              "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200",
-            propertyId: Number(id),
-          },
-        ]);
+        setImages([]);
       } finally {
         setLoading(false);
       }
@@ -241,46 +221,24 @@ const ManageImages: React.FC = () => {
       });
       return;
     }
-    if (clean.startsWith("blob:")) {
-      toast({
-        title: "Heads up",
-        description:
-          "Local file URLs (blob:) cannot be saved to the API. Upload to a host and paste its URL.",
-      });
-      return;
-    }
 
     try {
       setAdding(true);
-      const url = apiUrl(`api/Property/AddPropertyImage/${id}`);
-      // If your API expects just the raw string, send `clean` instead.
-      await axios.post(
+      const url = apiUrl(`/api/Property/AddPropertyImage/${id}`);
+      const { data } = await axios.post(
         url,
         { imageUrl: clean },
         { headers: { "Content-Type": "application/json" } }
       );
-
-      const newImg: PropertyImage = {
-        imageId: Date.now(),
-        imageUrl: toAbsoluteUrl(clean),
-        propertyId: Number(id),
-      };
-      setImages((prev) => [...prev, newImg]);
+      setImages((prev) => [...prev, data]);
       setNewImageUrl("");
       toast({ title: "Success", description: "Image added successfully!" });
     } catch (error) {
       console.error("Error adding property image:", error);
-      // Optimistic add so UI stays responsive:
-      const newImg: PropertyImage = {
-        imageId: Date.now(),
-        imageUrl: toAbsoluteUrl(clean),
-        propertyId: Number(id),
-      };
-      setImages((prev) => [...prev, newImg]);
-      setNewImageUrl("");
       toast({
-        title: "Success",
-        description: "Image added successfully! (Optimistic)",
+        title: "Error",
+        description: "Failed to add image.",
+        variant: "destructive",
       });
     } finally {
       setAdding(false);
@@ -290,16 +248,17 @@ const ManageImages: React.FC = () => {
   const handleDeleteImage = async (imageId: number) => {
     if (!confirm("Are you sure you want to delete this image?")) return;
     try {
-      const url = apiUrl(`api/Property/DeletePropertyImage/${id}/${imageId}`);
+      const url = apiUrl(`/api/Property/DeletePropertyImage/${id}/${imageId}`);
+      console.log("DELETE URL:", url); // 👈 debug
       await axios.delete(url);
       setImages((prev) => prev.filter((img) => img.imageId !== imageId));
       toast({ title: "Success", description: "Image deleted successfully!" });
     } catch (error) {
       console.error("Error deleting property image:", error);
-      setImages((prev) => prev.filter((img) => img.imageId !== imageId));
       toast({
-        title: "Success",
-        description: "Image deleted successfully! (Optimistic)",
+        title: "Error",
+        description: "Failed to delete image from server.",
+        variant: "destructive",
       });
     }
   };
@@ -314,8 +273,12 @@ const ManageImages: React.FC = () => {
     if (!over || active.id === over.id) return;
 
     setImages((items) => {
-      const oldIndex = items.findIndex((it) => it.imageId === active.id);
-      const newIndex = items.findIndex((it) => it.imageId === over.id);
+      const oldIndex = items.findIndex(
+        (it) => String(it.imageId) === String(active.id)
+      );
+      const newIndex = items.findIndex(
+        (it) => String(it.imageId) === String(over.id)
+      );
       return arrayMove(items, oldIndex, newIndex);
     });
 
@@ -325,7 +288,6 @@ const ManageImages: React.FC = () => {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    // This creates a local preview URL (not persisted on server).
     const localUrl = URL.createObjectURL(file);
     setNewImageUrl(localUrl);
   };
