@@ -64,10 +64,10 @@ const ContactPage = () => {
               </p>
               <div className="space-y-2">
                 <p className="text-foreground">
-                  <strong>Email:</strong> rinesagllareva@gmail.com
+                  <strong>Email:</strong> realorealestate11@gmail.com
                 </p>
                 <p className="text-foreground">
-                  <strong>Phone:</strong> +383-49-262-282
+                  <strong>Phone:</strong> +383-48-262-282
                 </p>
               </div>
             </div>
@@ -97,7 +97,7 @@ const ContactPage = () => {
                 </h3>
                 <p className="text-muted-foreground">
                   Për pyetje në lidhje me median, ju lutemi na kontaktoni në
-                  rinesagllareva@gmail.com.
+                  realorealestate11@gmail.com.
                 </p>
               </div>
             </div>
