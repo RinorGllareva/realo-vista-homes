@@ -1,63 +1,75 @@
 
-# Restyle Properties Map Section - Light Theme
 
-## Current Issue
-The map section uses a dark background (#292929) and dark CARTO map tiles, creating a harsh visual break between:
-- **PropertyPreview** (light cream #ebe1cf)
-- **PropertiesMap** (dark gray #292929) - jarring contrast
-- **AboutSection** (white/light background)
+# Add Section Dividers to Homepage
 
-## Solution
-Restyle the map section to use a light theme that flows naturally with the surrounding sections.
+## Overview
+Adding elegant semi-width dividers between homepage sections to create visual separation while maintaining the cohesive flow of the design.
 
-## Color Changes
+## Divider Design
+- **Width:** 70% of the container (centered)
+- **Color:** `#bdb8a1` - matches the existing header divider in PropertyPreview
+- **Style:** Simple horizontal line with subtle styling
+- **Placement:** Centered horizontally
 
-### Section Background
-- **From:** `bg-real-estate-dark` (dark gray #292929)
-- **To:** `bg-[#ebe1cf]` (cream, same as PropertyPreview)
+## Where Dividers Will Be Added
 
-### Section Text
-- **Title:** Change from gold (`text-real-estate-secondary`) to olive (`text-[#7e7859]`) to match PropertyPreview headers
-- **Subtitle:** Change from `text-gray-400` to `text-[#888]` for better visibility on light background
-- **Property count:** Change from `text-gray-500` to `text-[#888]`
+```text
++---------------------------+
+|      PropertyPreview      |
+|   [Shikoni Të Gjitha...]  |
++---------------------------+
+|     ─────────────────     |  <-- Divider 1 (70% width)
++---------------------------+
+|      PropertiesMap        |
+|   [Map + property count]  |
++---------------------------+
+|     ─────────────────     |  <-- Divider 2 (70% width)
++---------------------------+
+|      AboutSection         |
++---------------------------+
+```
 
-### Map Tiles
-- **From:** CARTO Dark Matter (dark themed)
-- **To:** CARTO Voyager or Positron (light themed map)
+## Implementation Approach
 
-### Marker Colors
-Keep the existing gold/green marker colors (#c9ab03 outer, #0a4834 inner) - these match the brand and work well on light maps.
+### Option A: Add Dividers Inside Components (Recommended)
+Add the divider at the bottom of `PropertyPreview` and bottom of `PropertiesMap` components. This keeps the dividers contextually tied to their sections.
 
-### Popup Styling
-Update CSS to ensure popups look clean on the light map with proper shadows and borders.
+### Option B: Add Dividers in HomePage
+Add separate divider elements between components in `HomePage.tsx` using the existing `Separator` component or custom styling.
 
 ## Files to Modify
 
-### 1. `src/components/PropertiesMap.tsx`
-- Change section background class from `bg-real-estate-dark` to `bg-[#ebe1cf]`
-- Update title text color to `text-[#7e7859]`
-- Update subtitle and count text colors to `text-[#888]`
-- Change TileLayer URL from dark tiles to light CARTO Voyager tiles
+### 1. `src/components/PropertyPreview.tsx`
+Add a centered divider below the "Shikoni Të Gjitha Pronat" button:
+- Position: At the very bottom of the section, inside the cream background
+- Styling: `w-[70%] mx-auto border-t border-[#bdb8a1]` with some padding above
 
-### 2. `src/index.css`
-- Update popup styles for light theme compatibility
-- Adjust shadow values for better visibility on light background
+### 2. `src/components/PropertiesMap.tsx`
+Add a centered divider below the property count text:
+- Position: At the bottom of the section
+- Styling: Same as above for consistency
 
-## Visual Result
+## Visual Details
+- The dividers use the same muted olive-tan color (`#bdb8a1`) already used in the PropertyPreview header
+- Semi-transparent appearance blends naturally with the cream background
+- 70% width creates a clean, modern look that doesn't span edge-to-edge
 
-```text
-+---------------------------------+
-|      PropertyPreview            |
-|   (cream bg #ebe1cf)            |
-+---------------------------------+
-|      PropertiesMap              |  
-|   (cream bg #ebe1cf)            |  <-- Now matches!
-|   (light map tiles)             |
-|   (olive text #7e7859)          |
-+---------------------------------+
-|      AboutSection               |
-|   (white/light bg)              |
-+---------------------------------+
+## Technical Details
+
+### Divider CSS Classes
+```
+w-[70%] mx-auto border-t border-[#bdb8a1] mt-10
 ```
 
-The section will now blend seamlessly between PropertyPreview and AboutSection, creating a cohesive visual flow throughout the homepage.
+This creates:
+- 70% width centered (`w-[70%] mx-auto`)
+- Single border line on top (`border-t`)
+- Matching color (`border-[#bdb8a1]`)
+- Spacing above (`mt-10`)
+
+### Changes Summary
+| File | Change |
+|------|--------|
+| `PropertyPreview.tsx` | Add divider div after the button container |
+| `PropertiesMap.tsx` | Add divider div after the property count paragraph |
+
