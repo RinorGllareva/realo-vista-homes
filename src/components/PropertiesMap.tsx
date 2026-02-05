@@ -205,6 +205,9 @@ const PropertiesMap: React.FC = () => {
         <p className="text-center text-[#888] text-sm mt-4">
           {properties.length} prona të gjetura në hartë
         </p>
+
+        {/* Section divider */}
+        <div className="w-[70%] mx-auto border-t border-[#bdb8a1] mt-10" />
       </div>
     </section>
   );

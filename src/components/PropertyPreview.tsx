@@ -250,6 +250,9 @@ const PropertyPreview: React.FC = () => {
           Shikoni Të Gjitha Pronat
         </button>
       </div>
+
+      {/* Section divider */}
+      <div className="w-[70%] mx-auto border-t border-[#bdb8a1] mt-10" />
     </section>
   );
 };
