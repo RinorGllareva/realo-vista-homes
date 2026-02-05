@@ -99,13 +99,13 @@ const PropertiesMap: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 md:py-16 bg-real-estate-dark">
+      <section className="py-12 md:py-16 bg-[#ebe1cf]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
+            <h2 className="font-title text-3xl md:text-4xl text-[#7e7859] mb-2">
               Gjeni Pronat në Hartë
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-[#888]">
               Shfleto pronat tona në hartë interaktive
             </p>
           </div>
