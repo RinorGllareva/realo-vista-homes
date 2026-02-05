@@ -99,13 +99,13 @@ const PropertiesMap: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 md:py-16 bg-real-estate-dark">
+      <section className="py-12 md:py-16 bg-[#ebe1cf]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
+            <h2 className="font-title text-3xl md:text-4xl text-[#7e7859] mb-2">
               Gjeni Pronat në Hartë
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-[#888]">
               Shfleto pronat tona në hartë interaktive
             </p>
           </div>
@@ -117,10 +117,10 @@ const PropertiesMap: React.FC = () => {
 
   if (error) {
     return (
-      <section className="py-12 md:py-16 bg-real-estate-dark">
+      <section className="py-12 md:py-16 bg-[#ebe1cf]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
+            <h2 className="font-title text-3xl md:text-4xl text-[#7e7859] mb-2">
               Gjeni Pronat në Hartë
             </h2>
           </div>
@@ -133,13 +133,13 @@ const PropertiesMap: React.FC = () => {
   }
 
   return (
-    <section className="py-12 md:py-16 bg-real-estate-dark">
+    <section className="py-12 md:py-16 bg-[#ebe1cf]">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
+          <h2 className="font-title text-3xl md:text-4xl text-[#7e7859] mb-2">
             Gjeni Pronat në Hartë
           </h2>
-          <p className="text-gray-400">
+          <p className="text-[#888]">
             Shfleto pronat tona në hartë interaktive
           </p>
         </div>
@@ -153,7 +153,7 @@ const PropertiesMap: React.FC = () => {
           >
             <TileLayer
               attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url="https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png"
             />
 
             {properties.map((property) => (
@@ -202,7 +202,7 @@ const PropertiesMap: React.FC = () => {
           </MapContainer>
         </div>
 
-        <p className="text-center text-gray-500 text-sm mt-4">
+        <p className="text-center text-[#888] text-sm mt-4">
           {properties.length} prona të gjetura në hartë
         </p>
       </div>
