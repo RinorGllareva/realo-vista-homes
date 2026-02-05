@@ -202,7 +202,7 @@ const PropertiesMap: React.FC = () => {
           </MapContainer>
         </div>
 
-        <p className="text-center text-gray-500 text-sm mt-4">
+        <p className="text-center text-[#888] text-sm mt-4">
           {properties.length} prona të gjetura në hartë
         </p>
       </div>
