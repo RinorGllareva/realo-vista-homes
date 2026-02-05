@@ -136,10 +136,10 @@ const PropertiesMap: React.FC = () => {
     <section className="py-12 md:py-16 bg-[#ebe1cf]">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="font-title text-3xl md:text-4xl text-[#7e7859] mb-2">
+          <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
             Gjeni Pronat në Hartë
           </h2>
-          <p className="text-[#888]">
+          <p className="text-gray-400">
             Shfleto pronat tona në hartë interaktive
           </p>
         </div>
@@ -152,14 +152,17 @@ const PropertiesMap: React.FC = () => {
             scrollWheelZoom={true}
           >
             <TileLayer
-              attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
             {properties.map((property) => (
               <Marker
                 key={property.propertyId}
-                position={[Number(property.latitude), Number(property.longitude)]}
+                position={[
+                  Number(property.latitude),
+                  Number(property.longitude),
+                ]}
                 icon={customIcon}
               >
                 <Popup className="property-popup">
@@ -201,10 +204,6 @@ const PropertiesMap: React.FC = () => {
             ))}
           </MapContainer>
         </div>
-
-        <p className="text-center text-[#888] text-sm mt-4">
-          {properties.length} prona të gjetura në hartë
-        </p>
 
         {/* Section divider */}
         <div className="w-[70%] mx-auto border-t border-[#bdb8a1] mt-10" />
