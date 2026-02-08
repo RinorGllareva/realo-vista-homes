@@ -60,7 +60,7 @@ const Header = () => {
           <p className="flex items-center gap-1">
             <CiPhone />
             <span className="text-real-estate-secondary font-bold">
-              +38348262282
+              +38348282262
             </span>
           </p>
         </div>
