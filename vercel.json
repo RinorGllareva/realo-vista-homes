@@ -1,11 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/share/:id*",
+      "source": "/share/:id",
       "destination": "https://api.realo-realestate.com/api/Property/ShareProperty/:id"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!share).*)",
       "destination": "/"
     }
   ]
