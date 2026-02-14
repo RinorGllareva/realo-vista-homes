@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
@@ -48,6 +49,12 @@ const ContactPage = () => {
   return (
     <div className="min-h-screen bg-background relative">
       {/* <-- relative for the secret button */}
+      <Helmet>
+        <title>Na Kontaktoni | Realo Real Estate</title>
+        <meta name="description" content="Kontaktoni Realo Real Estate per shtepi, banesa dhe prona ne Prishtine. Telefoni: +383-48-262-282." />
+        <meta name="keywords" content="kontakt realo, agjenci imobiliare prishtine, prona kosove kontakt" />
+        <link rel="canonical" href="https://realo-realestate.com/contact-us" />
+      </Helmet>
       <Header />
 
       <div className="pt-32 px-4 max-w-6xl mx-auto">
@@ -56,11 +63,11 @@ const ContactPage = () => {
           <div className="space-y-8">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-4">
-                Contact Us
+                Na Kontaktoni
               </h1>
               <p className="text-lg text-muted-foreground mb-6">
-                Email, call, or complete the form to share your property details
-                with us.
+                Na dërgoni email, na telefononi ose plotësoni formularin për të
+                ndarë detajet e pronës tuaj.
               </p>
               <div className="space-y-2">
                 <p className="text-foreground">
@@ -74,8 +81,8 @@ const ContactPage = () => {
 
             <div className="grid gap-6">
               <div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">
-                  Customer Support
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Mbështetje për Klientët
                 </h3>
                 <p className="text-muted-foreground">
                   Ne jemi në dispozicion gjatë gjithë kohës për të adresuar çdo
@@ -83,8 +90,8 @@ const ContactPage = () => {
                 </p>
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">
-                  Feedback and Suggestions
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Komente dhe Sugjerime
                 </h3>
                 <p className="text-muted-foreground">
                   Komentet tuaja janë të vlefshme për të na ndihmuar të
@@ -92,8 +99,8 @@ const ContactPage = () => {
                 </p>
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">
-                  Media Inquiries
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Pyetje nga Media
                 </h3>
                 <p className="text-muted-foreground">
                   Për pyetje në lidhje me median, ju lutemi na kontaktoni në
@@ -106,7 +113,7 @@ const ContactPage = () => {
           {/* Contact Form */}
           <div className="bg-card p-8 rounded-lg border border-border shadow-sm">
             <h2 className="text-2xl font-semibold text-foreground mb-2">
-              Get in Touch
+              Na Shkruani
             </h2>
             <p className="text-muted-foreground mb-6">
               Mund të na kontaktoni në çdo kohë
@@ -118,7 +125,7 @@ const ContactPage = () => {
                   htmlFor="name"
                   className="block text-sm font-medium text-foreground mb-2"
                 >
-                  Name
+                  Emri
                 </label>
                 <input
                   type="text"
@@ -150,7 +157,7 @@ const ContactPage = () => {
                   htmlFor="phone"
                   className="block text-sm font-medium text-foreground mb-2"
                 >
-                  Phone
+                  Telefoni
                 </label>
                 <input
                   type="tel"
@@ -166,7 +173,7 @@ const ContactPage = () => {
                   htmlFor="description"
                   className="block text-sm font-medium text-foreground mb-2"
                 >
-                  Description
+                  Përshkrimi
                 </label>
                 <textarea
                   id="description"
@@ -180,7 +187,7 @@ const ContactPage = () => {
                 type="submit"
                 className="w-full bg-real-estate-primary hover:bg-real-estate-primary/90 text-real-estate-secondary font-medium py-3 px-6 rounded-md transition-colors"
               >
-                Submit
+                Dërgo
               </button>
             </form>
 
