@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -231,6 +232,11 @@ const PropertyDetailedPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{`${property.title}, ${property.city} | Realo Real Estate`}</title>
+        <meta name="description" content={`${property.title} ne ${property.city}. ${property.bedrooms ? property.bedrooms + ' dhoma, ' : ''}${property.squareFeet ? property.squareFeet + ' m². ' : ''}Çmimi: €${priceText}. Realo Real Estate.`} />
+        <link rel="canonical" href={`https://realo-realestate.com/property/${id}`} />
+      </Helmet>
       <Header />
 
       {/* Property Header */}
