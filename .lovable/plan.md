@@ -1,75 +1,62 @@
 
 
-# Add Section Dividers to Homepage
+# Fix Google Search Appearance and Improve SEO Ranking
 
-## Overview
-Adding elegant semi-width dividers between homepage sections to create visual separation while maintaining the cohesive flow of the design.
+## What's Happening
 
-## Divider Design
-- **Width:** 70% of the container (centered)
-- **Color:** `#bdb8a1` - matches the existing header divider in PropertyPreview
-- **Style:** Simple horizontal line with subtle styling
-- **Placement:** Centered horizontally
+From your screenshot, Google shows "Realo Real-Estate" with no description. The SEO fixes from the last update are in the code but haven't been published yet, so Google is still showing old data. Additionally, the Property page, Contact page, and Property Detail page are missing SEO meta tags entirely, which hurts your ranking.
 
-## Where Dividers Will Be Added
+The footer already says "Gllarix" — that was fixed in the previous update.
 
-```text
-+---------------------------+
-|      PropertyPreview      |
-|   [Shikoni Të Gjitha...]  |
-+---------------------------+
-|     ─────────────────     |  <-- Divider 1 (70% width)
-+---------------------------+
-|      PropertiesMap        |
-|   [Map + property count]  |
-+---------------------------+
-|     ─────────────────     |  <-- Divider 2 (70% width)
-+---------------------------+
-|      AboutSection         |
-+---------------------------+
-```
+## What Needs to Be Done
 
-## Implementation Approach
+### 1. Add SEO Meta Tags to All Pages
 
-### Option A: Add Dividers Inside Components (Recommended)
-Add the divider at the bottom of `PropertyPreview` and bottom of `PropertiesMap` components. This keeps the dividers contextually tied to their sections.
+Currently only the HomePage has `react-helmet` tags. Every page needs its own title and description so Google can index them properly.
 
-### Option B: Add Dividers in HomePage
-Add separate divider elements between components in `HomePage.tsx` using the existing `Separator` component or custom styling.
+**PropertyPage.tsx** — Add:
+- Title: "Prona ne Shitje dhe me Qera | Realo Real Estate"
+- Description: "Shfletoni lista te pronave per shitje dhe me qera ne Prishtine dhe Kosove. Shtepi, banesa, troje, lokale dhe me shume."
 
-## Files to Modify
+**ContactPage.tsx** — Add:
+- Title: "Na Kontaktoni | Realo Real Estate"  
+- Description: "Kontaktoni Realo Real Estate per shtepi, banesa dhe prona ne Prishtine. Telefoni: +383-48-262-282."
+- Also translate English headings ("Contact Us", "Get in Touch", "Customer Support", etc.) to Albanian
 
-### 1. `src/components/PropertyPreview.tsx`
-Add a centered divider below the "Shikoni Të Gjitha Pronat" button:
-- Position: At the very bottom of the section, inside the cream background
-- Styling: `w-[70%] mx-auto border-t border-[#bdb8a1]` with some padding above
+**PropertyDetailedPage.tsx** — Add:
+- Dynamic title using the property name (e.g., "Banesa 3+1 ne Prishtine | Realo Real Estate")
+- Dynamic description using property details
 
-### 2. `src/components/PropertiesMap.tsx`
-Add a centered divider below the property count text:
-- Position: At the bottom of the section
-- Styling: Same as above for consistency
+### 2. Add `/about` Page to Sitemap
 
-## Visual Details
-- The dividers use the same muted olive-tan color (`#bdb8a1`) already used in the PropertyPreview header
-- Semi-transparent appearance blends naturally with the cream background
-- 70% width creates a clean, modern look that doesn't span edge-to-edge
+The sitemap currently lists `/`, `/Property`, and `/contact-us` but is missing `/about`. Adding it helps Google discover all pages.
 
-## Technical Details
+### 3. Translate Contact Page Headings to Albanian
 
-### Divider CSS Classes
-```
-w-[70%] mx-auto border-t border-[#bdb8a1] mt-10
-```
+The Contact page mixes English and Albanian. All headings should be in Albanian for consistency and better local SEO:
+- "Contact Us" becomes "Na Kontaktoni"
+- "Get in Touch" becomes "Na Shkruani"
+- "Customer Support" becomes "Mbeshtetje per Klientet"
+- "Feedback and Suggestions" becomes "Komente dhe Sugjerime"
+- "Media Inquiries" becomes "Pyetje nga Media"
+- Form labels: "Name" becomes "Emri", "Email" stays, "Phone" becomes "Telefoni", "Description" becomes "Pershkrimi", "Submit" becomes "Dergo"
 
-This creates:
-- 70% width centered (`w-[70%] mx-auto`)
-- Single border line on top (`border-t`)
-- Matching color (`border-[#bdb8a1]`)
-- Spacing above (`mt-10`)
+## After Publishing
 
-### Changes Summary
-| File | Change |
-|------|--------|
-| `PropertyPreview.tsx` | Add divider div after the button container |
-| `PropertiesMap.tsx` | Add divider div after the property count paragraph |
+Once published, to speed up Google re-indexing:
+1. Go to [Google Search Console](https://search.google.com/search-console)
+2. Add your site if not already added
+3. Submit your sitemap URL: `https://realo-realestate.com/sitemap.xml`
+4. Use "URL Inspection" tool to request re-indexing of your homepage
+
+This will make Google pick up the new Albanian title and description within days instead of weeks.
+
+## Technical Summary
+
+| File | Changes |
+|------|---------|
+| `src/pages/PropertyPage.tsx` | Add `react-helmet` with Albanian SEO tags |
+| `src/pages/ContactPage.tsx` | Add `react-helmet` with Albanian SEO tags, translate all English text to Albanian |
+| `src/pages/PropertyDetailedPage.tsx` | Add `react-helmet` with dynamic property-based SEO tags |
+| `public/sitemap.xml` | Add `/about` page entry |
 
