@@ -118,7 +118,7 @@ const Footer = () => {
 
         <div className="text-center md:text-right mt-8">
           <p className="text-sm flex items-center justify-center md:justify-end gap-1">
-            Website Created By Glaxio <GiGalaxy />
+            Website Created By Gllarix <GiGalaxy />
           </p>
         </div>
       </div>
