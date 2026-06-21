@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -15,20 +14,32 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Bath,
+  BedDouble,
   Building2,
-  Plus,
   Edit,
-  Trash2,
+  Eye,
   Images,
   LogOut,
-  Home,
-  DollarSign,
-  BedDouble,
-  Bath,
-  Square,
   MapPin,
+  Plus,
+  Square,
+  Trash2,
+  Video,
 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { apiUrl } from "@/lib/api";
+import logoImage from "../assets/LogoMainSection.png";
 
 interface Property {
   propertyId: number;
@@ -61,9 +72,11 @@ interface Property {
   longitude: number;
   exteriorVideo: string;
   interiorVideo: string;
+  floorPlanUrl?: string;
+  virtualTourUrl?: string;
+  images?: Array<{ imageUrl: string }>;
 }
 
-// ensure we always return an array from any API shape
 function toArray<T = unknown>(v: any, label?: string): T[] {
   if (Array.isArray(v)) return v as T[];
   if (v && typeof v === "object") {
@@ -73,6 +86,24 @@ function toArray<T = unknown>(v: any, label?: string): T[] {
   if (label) console.warn(`Expected array at ${label}, got:`, v);
   return [];
 }
+
+const toNumber = (value: number | string | undefined) => {
+  if (typeof value === "number") return value;
+  if (!value) return NaN;
+  return Number(String(value).replace(/[^\d.]/g, ""));
+};
+
+const formatPrice = (price: number | string) => {
+  const n = toNumber(price);
+  if (!Number.isFinite(n)) return "-";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+  }).format(n);
+};
+
+const chartColors = ["#c9ab03", "#f1d676", "#0a4834", "#ebe1cf", "#8f7a30"];
 
 const Dashboard: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -93,13 +124,14 @@ const Dashboard: React.FC = () => {
     async function fetchProperties() {
       try {
         setLoading(true);
-        const res = await axios.get(
-          apiUrl("api/Property/GetProperties"), // <<< NOTE the /api/
-          { headers: { Accept: "application/json" }, signal: ac.signal }
-        );
+        const res = await axios.get(apiUrl("api/Property/GetProperties"), {
+          headers: { Accept: "application/json" },
+          signal: ac.signal,
+        });
         const ct = String(res.headers?.["content-type"] || "");
-        if (!ct.includes("application/json"))
+        if (!ct.includes("application/json")) {
           throw new Error(`Unexpected content-type: ${ct}`);
+        }
         setProperties(toArray<Property>(res.data));
       } catch (e: any) {
         if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
@@ -121,6 +153,56 @@ const Dashboard: React.FC = () => {
     return () => ac.abort();
   }, [navigate, toast]);
 
+  const list = toArray<Property>(properties);
+
+  const analytics = useMemo(() => {
+    const typeCounts = list.reduce<Record<string, number>>((acc, property) => {
+      const type = property.propertyType || "Property";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const cityCounts = list.reduce<Record<string, number>>((acc, property) => {
+      const city = property.city || "Unlisted";
+      acc[city] = (acc[city] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      typeData: Object.entries(typeCounts).map(([name, value]) => ({
+        name,
+        value,
+      })),
+      cityData: Object.entries(cityCounts)
+        .map(([name, value]) => ({ name, listings: value }))
+        .sort((a, b) => b.listings - a.listings)
+        .slice(0, 6),
+    };
+  }, [list]);
+
+  const stats = [
+    {
+      label: "Total Properties",
+      value: list.length,
+      detail: "active portfolio",
+    },
+    {
+      label: "For Sale",
+      value: list.filter((p) => p.isForSale).length,
+      detail: "sale listings",
+    },
+    {
+      label: "For Rent",
+      value: list.filter((p) => p.isForRent || !p.isForSale).length,
+      detail: "rental listings",
+    },
+    {
+      label: "360 Tours",
+      value: list.filter((p) => p.virtualTourUrl).length,
+      detail: "Pioneer tours",
+    },
+  ];
+
   const handleDeleteProperty = (id: number) => {
     setPropertyToDelete(id);
     setDeleteDialogOpen(true);
@@ -129,9 +211,7 @@ const Dashboard: React.FC = () => {
   const confirmDelete = async () => {
     if (!propertyToDelete) return;
     try {
-      await axios.delete(
-        apiUrl(`api/Property/DeleteProperty/${propertyToDelete}`)
-      );
+      await axios.delete(apiUrl(`api/Property/DeleteProperty/${propertyToDelete}`));
       setProperties((prev) =>
         prev.filter((p) => p.propertyId !== propertyToDelete)
       );
@@ -154,250 +234,386 @@ const Dashboard: React.FC = () => {
 
   const handleEditProperty = (id: number) => navigate(`/edit-property/${id}`);
   const handleManageImages = (id: number) => navigate(`/manage-images/${id}`);
+  const handlePreviewProperty = (p: Property) =>
+    navigate(`/properties/${encodeURIComponent(p.title)}/${p.propertyId}`);
 
   const handleLogout = () => {
     sessionStorage.removeItem("isAuthenticated");
     navigate("/login");
   };
 
-  const formatPrice = (price: number | string) => {
-    const n = typeof price === "string" ? Number(price) : price;
-    if (!Number.isFinite(n)) return "—";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-    }).format(n);
-  };
-
-  const list = toArray<Property>(properties);
-
   return (
-    <div className="min-h-screen bg-[#0b1220] text-slate-200 p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
-        <Card className="border border-slate-800 bg-[#0f172a]/70 backdrop-blur-sm shadow-[0_10px_30px_-10px_rgba(99,102,241,0.25)]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-blue-500/15 p-2">
-                  <Building2 className="h-8 w-8 text-blue-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl text-slate-100">
-                    Property Management Dashboard
-                  </CardTitle>
-                  <p className="text-sm text-slate-400">
-                    Manage your real estate portfolio
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => navigate("/add-property")}
-                  className="bg-blue-500 hover:bg-blue-500/90 text-white shadow-md"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Property
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleLogout}
-                  className="border-slate-700 bg-[#0b1220] text-slate-200 hover:bg-slate-800"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
+    <div className="min-h-screen bg-[#050705] text-[#f5f0e8]">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(201,171,3,0.12),transparent_34%),linear-gradient(120deg,rgba(10,72,52,0.35),transparent_42%)]" />
+
+      <main className="relative mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+        <header className="border border-real-estate-secondary/20 bg-[#08150f]/85 p-5 shadow-2xl shadow-black/40 backdrop-blur md:p-6">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="inline-flex w-fit items-center gap-3"
+                aria-label="Go to home page"
+              >
+                <img src={logoImage} alt="Realo Real Estate" className="h-14 w-auto" />
+                <span className="hidden font-title text-sm uppercase tracking-[0.35em] text-real-estate-secondary sm:inline">
+                  Real Estate
+                </span>
+              </button>
+              <div className="h-px w-full bg-real-estate-secondary/20 sm:h-14 sm:w-px" />
+              <div>
+                <p className="font-text text-xs uppercase tracking-[0.32em] text-real-estate-secondary">
+                  Admin Control Room
+                </p>
+                <h1 className="mt-2 font-title text-5xl leading-none text-[#f5f0e8] md:text-7xl">
+                  Dashboard
+                </h1>
+                <p className="mt-2 max-w-xl text-sm text-[#f5f0e8]/65">
+                  Manage listings, media, virtual tours, and live property actions from one editorial workspace.
+                </p>
               </div>
             </div>
-          </CardHeader>
-        </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          {[
-            {
-              icon: <Home className="h-5 w-5 text-blue-400" />,
-              bg: "bg-blue-500/10",
-              label: "Total Properties",
-              value: list.length,
-            },
-            {
-              icon: <DollarSign className="h-5 w-5 text-emerald-400" />,
-              bg: "bg-emerald-500/10",
-              label: "For Sale",
-              value: list.filter((p) => p.isForSale).length,
-            },
-            {
-              icon: <Building2 className="h-5 w-5 text-amber-400" />,
-              bg: "bg-amber-500/10",
-              label: "For Rent",
-              value: list.filter((p) => p.isForRent).length,
-            },
-            {
-              icon: <Square className="h-5 w-5 text-indigo-300" />,
-              bg: "bg-indigo-500/10",
-              label: "Available",
-              value: list.filter((p) => p.isAvailable).length,
-            },
-          ].map((s, i) => (
-            <Card
-              key={i}
-              className="border border-slate-800 bg-[#0f172a] shadow-[0_4px_20px_rgba(2,6,23,0.5)]"
+            <div className="flex flex-wrap gap-3">
+              <Button
+                onClick={() => navigate("/add-property")}
+                className="border border-real-estate-secondary bg-real-estate-secondary px-5 py-5 font-text text-xs font-bold uppercase tracking-[0.22em] text-real-estate-primary hover:bg-[#f1d676]"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Property
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="border-real-estate-secondary/40 bg-transparent px-5 py-5 font-text text-xs font-bold uppercase tracking-[0.22em] text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <article
+              key={stat.label}
+              className="border border-real-estate-secondary/15 bg-[#0d1510] p-6 shadow-xl shadow-black/20"
             >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className={`rounded-lg p-2 ${s.bg}`}>{s.icon}</div>
-                  <div>
-                    <p className="text-sm text-slate-400">{s.label}</p>
-                    <p className="text-2xl font-bold text-slate-100">
-                      {s.value}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <p className="font-text text-xs uppercase tracking-[0.28em] text-[#f5f0e8]/45">
+                {stat.label}
+              </p>
+              <strong className="mt-4 block font-title text-5xl font-normal text-real-estate-secondary">
+                {stat.value}
+              </strong>
+              <span className="mt-2 block text-sm text-[#f5f0e8]/55">
+                {stat.detail}
+              </span>
+            </article>
           ))}
-        </div>
+        </section>
 
-        {/* Properties */}
-        <Card className="border border-slate-800 bg-[#0f172a]">
-          <CardHeader>
-            <CardTitle className="text-slate-100">Properties</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <section className="mt-8 grid gap-6 lg:grid-cols-2">
+          <article className="border border-real-estate-secondary/15 bg-[#0d1510] p-5">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary">
+                  Market View
+                </p>
+                <h2 className="mt-2 font-title text-3xl text-[#f5f0e8]">
+                  Listings by City
+                </h2>
+              </div>
+              <Building2 className="h-6 w-6 text-real-estate-secondary/70" />
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.cityData}>
+                  <XAxis
+                    dataKey="name"
+                    stroke="#8f8a7f"
+                    tickLine={false}
+                    axisLine={{ stroke: "rgba(201,171,3,0.18)" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    stroke="#8f8a7f"
+                    tickLine={false}
+                    axisLine={{ stroke: "rgba(201,171,3,0.18)" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(201,171,3,0.08)" }}
+                    contentStyle={{
+                      background: "#050705",
+                      border: "1px solid rgba(201,171,3,0.35)",
+                      color: "#f5f0e8",
+                    }}
+                  />
+                  <Bar dataKey="listings" fill="#c9ab03" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
+
+          <article className="border border-real-estate-secondary/15 bg-[#0d1510] p-5">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary">
+                  Portfolio Mix
+                </p>
+                <h2 className="mt-2 font-title text-3xl text-[#f5f0e8]">
+                  Property Type Distribution
+                </h2>
+              </div>
+              <Square className="h-6 w-6 text-real-estate-secondary/70" />
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={analytics.typeData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={105}
+                    paddingAngle={3}
+                  >
+                    {analytics.typeData.map((entry, index) => (
+                      <Cell
+                        key={entry.name}
+                        fill={chartColors[index % chartColors.length]}
+                        stroke="#050705"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "#050705",
+                      border: "1px solid rgba(201,171,3,0.35)",
+                      color: "#f5f0e8",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
+        </section>
+
+        <section className="mt-12">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="font-text text-xs uppercase tracking-[0.3em] text-real-estate-secondary">
+                Listings
+              </p>
+              <h2 className="mt-2 font-title text-4xl text-[#f5f0e8] md:text-5xl">
+                Property Management
+              </h2>
+            </div>
+            <p className="text-sm text-[#f5f0e8]/55">
+              {list.length} properties loaded from Realo API
+            </p>
+          </div>
+
+          <div className="border border-real-estate-secondary/15 bg-[#0d1510]">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-400" />
+              <div className="flex min-h-72 items-center justify-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-real-estate-secondary border-t-transparent" />
               </div>
             ) : list.length === 0 ? (
-              <div className="py-12 text-center">
-                <Building2 className="mx-auto mb-4 h-12 w-12 text-slate-500" />
-                <p className="text-slate-400">No properties found</p>
+              <div className="flex min-h-72 flex-col items-center justify-center text-center">
+                <Building2 className="mb-4 h-12 w-12 text-real-estate-secondary/60" />
+                <p className="font-title text-3xl text-[#f5f0e8]">
+                  No properties found
+                </p>
+                <p className="mt-2 text-sm text-[#f5f0e8]/55">
+                  Add a property to start building the Realo portfolio.
+                </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                {list.map((p) => (
-                  <Card
-                    key={p.propertyId}
-                    className="border border-slate-800 bg-[#0b1323] hover:ring-1 hover:ring-blue-500/30"
-                  >
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        {/* title & badges */}
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="truncate font-semibold text-slate-100 text-wrap">
-                              {p.title}
-                            </h3>
-                            <div className="mt-1 flex items-center gap-1 text-sm text-slate-400">
-                              <MapPin className="h-3 w-3" />
-                              <span className="truncate">
-                                {p.city}, {p.state}
-                              </span>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1080px] text-left">
+                  <thead className="bg-[#050705] font-text text-xs uppercase tracking-[0.22em] text-real-estate-secondary">
+                    <tr>
+                      <th className="p-4 font-normal">Property</th>
+                      <th className="p-4 font-normal">Type</th>
+                      <th className="p-4 font-normal">Price</th>
+                      <th className="p-4 font-normal">Status</th>
+                      <th className="p-4 font-normal">Media</th>
+                      <th className="p-4 text-right font-normal">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.map((property) => (
+                      <tr
+                        key={property.propertyId}
+                        className="border-t border-real-estate-secondary/10 text-[#f5f0e8]/80 transition hover:bg-real-estate-primary/20"
+                      >
+                        <td className="p-4">
+                          <div className="flex min-w-0 items-center gap-4">
+                            <div className="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden border border-real-estate-secondary/20 bg-[#050705]">
+                              {property.images?.[0]?.imageUrl ? (
+                                <img
+                                  src={property.images[0].imageUrl}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <Building2 className="h-6 w-6 text-real-estate-secondary/60" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="line-clamp-1 font-title text-xl text-[#f5f0e8]">
+                                {property.title || "Untitled property"}
+                              </h3>
+                              <p className="mt-1 flex items-center gap-1 text-sm text-[#f5f0e8]/50">
+                                <MapPin className="h-3.5 w-3.5 text-real-estate-secondary" />
+                                {property.city || property.address || "No location"}
+                              </p>
+                              <p className="mt-2 flex flex-wrap gap-3 text-xs text-[#f5f0e8]/55">
+                                {property.bedrooms ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <BedDouble className="h-3.5 w-3.5 text-real-estate-secondary" />
+                                    {property.bedrooms} Beds
+                                  </span>
+                                ) : null}
+                                {property.bathrooms ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Bath className="h-3.5 w-3.5 text-real-estate-secondary" />
+                                    {property.bathrooms} Baths
+                                  </span>
+                                ) : null}
+                                {property.squareFeet ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Square className="h-3.5 w-3.5 text-real-estate-secondary" />
+                                    {property.squareFeet} sq m
+                                  </span>
+                                ) : null}
+                              </p>
                             </div>
                           </div>
-                          <div className="flex gap-1">
-                            {p.isForSale && (
-                              <span className="rounded-full bg-emerald-600/20 px-2 py-0.5 text-xs font-medium text-emerald-300">
-                                Sale
+                        </td>
+                        <td className="p-4 text-sm">{property.propertyType || "Property"}</td>
+                        <td className="p-4 font-title text-2xl text-real-estate-secondary">
+                          {formatPrice(property.price)}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-2">
+                            {property.isForSale ? (
+                              <span className="border border-real-estate-secondary/35 bg-real-estate-secondary px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-real-estate-primary">
+                                For Sale
                               </span>
-                            )}
-                            {p.isForRent && (
-                              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300">
-                                Rent
+                            ) : null}
+                            {property.isForRent || !property.isForSale ? (
+                              <span className="border border-real-estate-secondary/35 bg-real-estate-primary px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-real-estate-secondary">
+                                For Rent
                               </span>
-                            )}
+                            ) : null}
+                            {property.isAvailable ? (
+                              <span className="border border-[#f5f0e8]/20 px-2.5 py-1 text-xs uppercase tracking-[0.14em] text-[#f5f0e8]/70">
+                                Available
+                              </span>
+                            ) : null}
                           </div>
-                        </div>
-
-                        {/* price */}
-                        <div className="text-2xl font-bold text-blue-400">
-                          {p.price}
-                        </div>
-
-                        {/* facts */}
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
-                          <div className="flex items-center gap-1">
-                            <BedDouble className="h-4 w-4" />
-                            <span>{p.bedrooms} bed</span>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            <span className="border border-real-estate-secondary/20 px-2.5 py-1 text-[#f5f0e8]/65">
+                              Photos {property.images?.length ?? 0}
+                            </span>
+                            <span
+                              className={`border px-2.5 py-1 ${
+                                property.virtualTourUrl
+                                  ? "border-real-estate-secondary/45 text-real-estate-secondary"
+                                  : "border-[#f5f0e8]/10 text-[#f5f0e8]/35"
+                              }`}
+                            >
+                              {property.virtualTourUrl ? "Has tour" : "No tour"}
+                            </span>
+                            <span
+                              className={`border px-2.5 py-1 ${
+                                property.floorPlanUrl
+                                  ? "border-real-estate-secondary/45 text-real-estate-secondary"
+                                  : "border-[#f5f0e8]/10 text-[#f5f0e8]/35"
+                              }`}
+                            >
+                              {property.floorPlanUrl ? "Has floor plan" : "No floor plan"}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Bath className="h-4 w-4" />
-                            <span>{p.bathrooms} bath</span>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditProperty(property.propertyId)}
+                              className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
+                            >
+                              <Edit className="mr-2 h-3.5 w-3.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleManageImages(property.propertyId)}
+                              className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
+                            >
+                              <Images className="mr-2 h-3.5 w-3.5" />
+                              Media
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handlePreviewProperty(property)}
+                              className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
+                            >
+                              <Eye className="mr-2 h-3.5 w-3.5" />
+                              Preview
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleDeleteProperty(property.propertyId)}
+                              className="border border-red-500/50 bg-red-950/40 text-red-200 hover:bg-red-700 hover:text-white"
+                            >
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />
+                              Delete
+                            </Button>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Square className="h-4 w-4" />
-                            <span>{p.squareFeet} sqft</span>
-                          </div>
-                        </div>
-
-                        {/* desc */}
-                        <p className="line-clamp-2 text-sm text-slate-400">
-                          {p.description}
-                        </p>
-
-                        {/* actions */}
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditProperty(p.propertyId)}
-                            className="flex-1 border-slate-700 bg-[#0b1220] text-slate-200 hover:bg-slate-800"
-                          >
-                            <Edit className="mr-2 h-3 w-3" />
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleManageImages(p.propertyId)}
-                            className="border-slate-700 bg-[#0b1220] text-slate-200 hover:bg-slate-800"
-                          >
-                            <Images className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteProperty(p.propertyId)}
-                            className="bg-rose-600 hover:bg-rose-600/90"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
+      </main>
 
-        {/* Delete dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent className="bg-[#0f172a] text-slate-200 border border-slate-800">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-400">
-                This action cannot be undone. This will permanently delete the
-                property and all associated data.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="bg-slate-800 text-slate-200 hover:bg-slate-700">
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-rose-600 text-white hover:bg-rose-600/90"
-                onClick={confirmDelete}
-              >
-                Delete Property
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="border border-real-estate-secondary/30 bg-[#050705] text-[#f5f0e8]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-title text-3xl font-normal text-[#f5f0e8]">
+              Delete this property?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[#f5f0e8]/55">
+              This action cannot be undone. This will permanently delete the
+              property and all associated data from the Realo dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-real-estate-secondary/25 bg-transparent text-[#f5f0e8] hover:bg-real-estate-primary hover:text-white">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-700 text-white hover:bg-red-600"
+              onClick={confirmDelete}
+            >
+              Delete Property
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

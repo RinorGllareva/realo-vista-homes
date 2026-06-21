@@ -1,66 +1,49 @@
-import React from "react";
-import aboutImage from "../assets/about-us.jpg.png";
+import { Building2, Home, KeyRound, MapPinned } from "lucide-react";
 
-const AboutSection = () => {
-  return (
-    <div className="max-w-6xl mx-auto my-12 px-5">
-      <div className="flex flex-col lg:flex-row items-center gap-8">
-        {/* Image Column - Reversed on smaller screens */}
-        <div
-          className="lg:w-2-7
- order-2 lg:order-2"
-        >
-          <img
-            src={aboutImage}
-            alt="About Realo Real Estate"
-            className="w-full rounded-lg object-cover"
-          />
+const marketCards = [
+  { label: "Qendra kryesore", value: "Prishtinë", icon: MapPinned },
+  { label: "Kërkesa më e lartë", value: "Banesa", icon: Building2 },
+  { label: "Segment aktiv", value: "Qira & shitje", icon: KeyRound },
+  { label: "Fokusi i blerësve", value: "70-120 m²", icon: Home },
+];
+
+const AboutSection = () => (
+  <section className="bg-white px-5 py-14 md:py-20">
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="font-text text-sm uppercase tracking-[0.28em] text-real-estate-secondary">
+            Analitika e tregut
+          </p>
+          <h2 className="mt-2 font-title text-3xl text-real-estate-primary md:text-5xl">
+            Pasqyra e tregut në Kosovë
+          </h2>
         </div>
+        <p className="max-w-xl text-sm leading-6 text-muted-foreground md:text-base">
+          Indikatorë të përgjithshëm të tregut të patundshmërive në Kosovë,
+          të përmbledhur për t&apos;ju ndihmuar të orientoheni më lehtë para se të
+          shfletoni pronat.
+        </p>
+      </div>
 
-        {/* Text Column */}
-        <div className="lg:w-1/2 order-1 lg:order-1">
-          <div className="about-text">
-            <div className="mb-6">
-              <div className="flex items-baseline gap-3 mb-4">
-                <h2 className="font-title text-3xl font-bold relative">
-                  RRETH
-                  <span className="absolute -bottom-3 left-0 w-16 h-0.5 bg-black"></span>
-                </h2>
-                <div className="font-title text-real-estate-secondary font-black flex items-center gap-2">
-                  <h1 className="text-3xl">REALO</h1>
-                  <h3 className="text-1xl">REAL-ESTATE</h3>
-                </div>
-              </div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {marketCards.map(({ label, value, icon: Icon }) => (
+          <div
+            key={label}
+            className="rounded-lg border border-real-estate-primary/10 bg-[#fbfaf7] p-4 shadow-sm sm:p-5"
+          >
+            <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-real-estate-primary text-real-estate-secondary sm:h-10 sm:w-10">
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <p className="font-text text-base leading-relaxed mb-5 text-gray-700">
-              Mirë se vini në Realo Real Estate – vendi ku pasioni për pasuritë
-              e paluajtshme dhe përkushtimi ndaj klientit bashkohen për të
-              krijuar përvoja unike! Si një kompani e pavarur dhe lidere në
-              treg, ne jemi krenarë të ndërtojmë marrëdhënie të forta me
-              klientët tanë, bazuar në besueshmëri, profesionalizëm dhe suksese
-              të vazhdueshme. Me një histori suksesi që daton prej vitesh, ne
-              vazhdojmë të rritemi falë rekomandimeve të shumta dhe besnikërisë
-              që kemi fituar.
-            </p>
-            <p className="font-text text-base leading-relaxed mb-5 text-gray-700">
-              Ekipi ynë dinamik ndodhet në zemër të qytetit dhe mbulon zonat
-              kryesore urbane dhe periferike, duke ju garantuar një shërbim të
-              personalizuar për çdo nevojë tuajën.
-            </p>
-            <p className="font-text text-base leading-relaxed mb-5 text-gray-700">
-              Për ne, çdo klient është unik, dhe ne përkushtohemi për të sjellë
-              zgjidhjet më të mira dhe më të përshtatshme për secilin. Realo
-              është zgjedhja e parë për ata që kërkojnë cilësi, përkujdesje dhe
-              sukses në çdo bashkëpunim mes nesh!
-            </p>
-            <h5 className="font-text text-lg font-medium">
-              Prona juaj, Prioriteti jonë!
-            </h5>
+            <div className="font-title text-xl text-real-estate-primary sm:text-2xl">
+              {value}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{label}</p>
           </div>
-        </div>
+        ))}
       </div>
     </div>
-  );
-};
+  </section>
+);
 
 export default AboutSection;

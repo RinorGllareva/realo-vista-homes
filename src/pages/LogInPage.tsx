@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Lock, User } from "lucide-react";
+import { Lock, User } from "lucide-react";
+import { AnimatedRealoLogo } from "@/components/RealoLoader";
 
 const LoginPage: React.FC = () => {
   const [credentials, setCredentials] = useState({
@@ -8,11 +9,13 @@ const LoginPage: React.FC = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials((p) => ({ ...p, [name]: value }));
+    setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,64 +26,63 @@ const LoginPage: React.FC = () => {
       sessionStorage.setItem("isAuthenticated", "true");
       navigate("/dashboard");
     } else {
-      alert("Invalid username or password. Try admin/admin.");
+      setError("Invalid username or password. Try admin/admin.");
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#0b1220]">
-      <div className="w-full max-w-md rounded-2xl border border-[#1e2837] bg-[#111826]/70 backdrop-blur-md shadow-[0_10px_30px_-10px_rgba(0,0,0,.6)]">
-        {/* Header */}
-        <div className="px-8 pt-8 text-center space-y-4">
-          <div className="mx-auto w-fit rounded-xl p-3 bg-[#1a2a3d]">
-            <Building2 className="h-8 w-8 text-[#89b4ff]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-[#e6edf6]">
-              Property Dashboard
-            </h1>
-            <p className="text-sm text-[#9aa4b2]">
-              Sign in to manage your properties
-            </p>
-          </div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050705] px-5 py-10 text-[#f5f0e8]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(201,171,3,0.18),transparent_34%),radial-gradient(circle_at_78%_18%,rgba(10,72,52,0.7),transparent_36%),linear-gradient(145deg,rgba(10,72,52,0.78)_0%,rgba(5,7,5,0.96)_46%,#050705_100%)]" />
+
+      <div className="relative w-full max-w-md border border-real-estate-secondary/25 bg-[#08150f]/90 shadow-2xl shadow-black/50 backdrop-blur-xl">
+        <div className="border-b border-real-estate-secondary/15 px-8 pt-8 text-center">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="mx-auto inline-flex items-center justify-center"
+            aria-label="Go to home page"
+          >
+            <AnimatedRealoLogo />
+          </button>
+
+          <p className="realo-login-rise mt-6 font-text text-xs uppercase tracking-[0.32em] text-real-estate-secondary">
+            Admin Access
+          </p>
+          <h1 className="realo-login-rise mt-2 font-title text-5xl leading-none text-[#f5f0e8]">
+            Dashboard
+          </h1>
+          <p className="realo-login-rise mx-auto mt-3 max-w-xs pb-8 text-sm leading-6 text-[#f5f0e8]/60">
+            Sign in to manage Realo properties, media, floor plans, and Pioneer virtual tours.
+          </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-8 pb-8 pt-6 space-y-5">
-          {/* Username */}
-          <div className="space-y-2">
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-[#c9d4e0]"
-            >
+        <form onSubmit={handleSubmit} className="realo-login-rise space-y-5 px-8 py-8">
+          <label className="block space-y-2" htmlFor="username">
+            <span className="font-text text-xs uppercase tracking-[0.22em] text-real-estate-secondary">
               Username
-            </label>
-            <div className="relative">
-              <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6b7685]" />
+            </span>
+            <span className="relative block">
+              <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-real-estate-secondary/75" />
               <input
                 id="username"
                 name="username"
                 value={credentials.username}
                 onChange={handleChange}
                 placeholder="Enter username"
-                className="w-full rounded-lg border border-[#2b3444] bg-[#0e1420] pl-10 pr-3 py-3 text-[#e6edf6] placeholder:text-[#6b7685] focus:outline-none focus:ring-2 focus:ring-[#5b9cff] focus:border-transparent"
+                className="w-full border border-real-estate-secondary/20 bg-[#050705] py-3.5 pl-11 pr-4 text-[#f5f0e8] outline-none transition placeholder:text-[#f5f0e8]/30 focus:border-real-estate-secondary focus:ring-2 focus:ring-real-estate-secondary/15"
                 required
               />
-            </div>
-          </div>
+            </span>
+          </label>
 
-          {/* Password */}
-          <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-[#c9d4e0]"
-            >
+          <label className="block space-y-2" htmlFor="password">
+            <span className="font-text text-xs uppercase tracking-[0.22em] text-real-estate-secondary">
               Password
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6b7685]" />
+            </span>
+            <span className="relative block">
+              <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-real-estate-secondary/75" />
               <input
                 id="password"
                 name="password"
@@ -88,25 +90,26 @@ const LoginPage: React.FC = () => {
                 value={credentials.password}
                 onChange={handleChange}
                 placeholder="Enter password"
-                className="w-full rounded-lg border border-[#2b3444] bg-[#0e1420] pl-10 pr-3 py-3 text-[#e6edf6] placeholder:text-[#6b7685] focus:outline-none focus:ring-2 focus:ring-[#5b9cff] focus:border-transparent"
+                className="w-full border border-real-estate-secondary/20 bg-[#050705] py-3.5 pl-11 pr-4 text-[#f5f0e8] outline-none transition placeholder:text-[#f5f0e8]/30 focus:border-real-estate-secondary focus:ring-2 focus:ring-real-estate-secondary/15"
                 required
               />
-            </div>
-          </div>
+            </span>
+          </label>
 
-          {/* Submit */}
+          {error ? (
+            <div className="border border-red-500/35 bg-red-950/25 px-4 py-3 text-sm text-red-100">
+              {error}
+            </div>
+          ) : null}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[#5b9cff] py-3 font-semibold text-[#0a1220] transition hover:bg-[#4a8ef5] disabled:opacity-70"
+            className="w-full border border-real-estate-secondary bg-real-estate-secondary py-3.5 font-text text-xs font-bold uppercase tracking-[0.24em] text-real-estate-primary transition hover:bg-[#f1d676] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
-          <p className="text-center text-sm text-[#8c96a5]">
-            Demo credentials: <span className="text-[#e6edf6]">admin</span> /{" "}
-            <span className="text-[#e6edf6]">admin</span>
-          </p>
         </form>
       </div>
     </div>

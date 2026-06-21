@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,14 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, Plus, Trash2, GripVertical, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  GripVertical,
+  Upload,
+  Save,
+} from "lucide-react";
 import axios from "axios";
 import { apiUrl } from "@/lib/api";
 
@@ -30,6 +37,27 @@ interface PropertyImage {
   imageId: number;
   imageUrl: string;
   propertyId: number;
+}
+
+interface PropertyDetails {
+  propertyId: number;
+  title?: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  propertyType?: string;
+  isForSale?: boolean;
+  isForRent?: boolean;
+  price?: string | number;
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFeet?: number;
+  furniture?: string;
+  hasOwnershipDocument?: boolean;
+  latitude?: number;
+  longitude?: number;
+  floorPlanUrl?: string;
+  virtualTourUrl?: string;
 }
 
 interface SortableImageProps {
@@ -176,9 +204,12 @@ const ManageImages: React.FC = () => {
   const { toast } = useToast();
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [property, setProperty] = useState<PropertyDetails | null>(null);
+  const [floorPlanUrl, setFloorPlanUrl] = useState("");
+  const [virtualTourUrl, setVirtualTourUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [savingMedia, setSavingMedia] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -187,12 +218,26 @@ const ManageImages: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        const url = apiUrl(`/api/Property/GetPropertyImages/${id}`);
-        const { data } = await axios.get(url, {
-          headers: { Accept: "application/json" },
-          signal: ac.signal,
-        });
-        setImages(normalizeImages(data, Number(id)));
+        const [propertyRes, imagesRes] = await Promise.all([
+          axios.get(apiUrl(`/api/Property/GetProperty/${id}`), {
+            headers: { Accept: "application/json" },
+            signal: ac.signal,
+          }),
+          axios
+            .get(apiUrl(`/api/Property/GetPropertyImages/${id}`), {
+              headers: { Accept: "application/json" },
+              signal: ac.signal,
+            })
+            .catch((error) => {
+              if (error?.response?.status === 404) return { data: [] };
+              throw error;
+            }),
+        ]);
+        const p = propertyRes.data as PropertyDetails;
+        setProperty(p);
+        setFloorPlanUrl(p.floorPlanUrl ?? "");
+        setVirtualTourUrl(p.virtualTourUrl ?? "");
+        setImages(normalizeImages(imagesRes.data, Number(id)));
       } catch (error: any) {
         if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED")
           return;
@@ -245,11 +290,46 @@ const ManageImages: React.FC = () => {
     }
   };
 
+  const handleSaveFeatureUrls = async () => {
+    if (!id || !property) return;
+    try {
+      setSavingMedia(true);
+      const updated = {
+        ...property,
+        floorPlanUrl: floorPlanUrl.trim(),
+        virtualTourUrl: virtualTourUrl.trim(),
+      };
+      const { data } = await axios.patch(apiUrl(`/api/Property/UpdatePropertyMedia/${id}`), {
+        floorPlanUrl: updated.floorPlanUrl,
+        virtualTourUrl: updated.virtualTourUrl,
+      }, {
+        headers: { "Content-Type": "application/json" },
+      });
+      setProperty({
+        ...updated,
+        floorPlanUrl: data?.floorPlanUrl ?? updated.floorPlanUrl,
+        virtualTourUrl: data?.virtualTourUrl ?? updated.virtualTourUrl,
+      });
+      toast({
+        title: "Success",
+        description: "Property media links updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving media links:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save media links.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingMedia(false);
+    }
+  };
+
   const handleDeleteImage = async (imageId: number) => {
     if (!confirm("Are you sure you want to delete this image?")) return;
     try {
       const url = apiUrl(`/api/Property/DeletePropertyImage/${id}/${imageId}`);
-      console.log("DELETE URL:", url); // 👈 debug
       await axios.delete(url);
       setImages((prev) => prev.filter((img) => img.imageId !== imageId));
       toast({ title: "Success", description: "Image deleted successfully!" });
@@ -283,13 +363,6 @@ const ManageImages: React.FC = () => {
     });
 
     toast({ title: "Success", description: "Images reordered successfully!" });
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const localUrl = URL.createObjectURL(file);
-    setNewImageUrl(localUrl);
   };
 
   const field =
@@ -339,22 +412,11 @@ const ManageImages: React.FC = () => {
                     placeholder="https://example.com/image.jpg  or  /uploads/abc.jpg"
                     className={field}
                   />
-                  <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-slate-700 bg-[#0b1220] text-slate-200 hover:bg-slate-800 px-4"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload File
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
                 </div>
+                <p className="text-xs text-slate-500">
+                  Paste a public image URL. Local files are not saved until a
+                  real upload provider is connected.
+                </p>
               </div>
             </div>
             <Button
@@ -370,6 +432,76 @@ const ManageImages: React.FC = () => {
                   Add Image
                 </>
               )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Floor Plan & Pioneer Tour */}
+        <Card className="border border-slate-800 bg-[#0f172a]">
+          <CardHeader>
+            <CardTitle className="text-lg text-slate-100">
+              Floor Plan & Pioneer Virtual Tour
+            </CardTitle>
+            <p className="text-sm text-slate-400">
+              Paste the public Pioneer tour URL after it has been exported.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4 p-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="floorPlanUrl" className="text-slate-300">
+                  Floor Plan URL
+                </Label>
+                <Input
+                  id="floorPlanUrl"
+                  type="url"
+                  value={floorPlanUrl}
+                  onChange={(e) => setFloorPlanUrl(e.target.value)}
+                  placeholder="https://example.com/floor-plan.pdf"
+                  className={field}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="virtualTourUrl" className="text-slate-300">
+                  Pioneer Virtual Tour URL
+                </Label>
+                <Input
+                  id="virtualTourUrl"
+                  type="url"
+                  value={virtualTourUrl}
+                  onChange={(e) => setVirtualTourUrl(e.target.value)}
+                  placeholder="https://pioneer-tour.example.com/index.html"
+                  className={field}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span
+                className={`rounded-full px-2.5 py-1 ${
+                  floorPlanUrl.trim()
+                    ? "bg-cyan-500/15 text-cyan-200"
+                    : "bg-slate-800 text-slate-500"
+                }`}
+              >
+                {floorPlanUrl.trim() ? "Has floor plan" : "No floor plan"}
+              </span>
+              <span
+                className={`rounded-full px-2.5 py-1 ${
+                  virtualTourUrl.trim()
+                    ? "bg-violet-500/15 text-violet-200"
+                    : "bg-slate-800 text-slate-500"
+                }`}
+              >
+                {virtualTourUrl.trim() ? "Has tour" : "No tour"}
+              </span>
+            </div>
+            <Button
+              onClick={handleSaveFeatureUrls}
+              disabled={savingMedia || !property}
+              className="bg-blue-500 hover:bg-blue-500/90 text-white shadow-md rounded-xl"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {savingMedia ? "Saving..." : "Save Media Links"}
             </Button>
           </CardContent>
         </Card>

@@ -5,6 +5,7 @@ import { ImSortAlphaAsc, ImSortAlphaDesc } from "react-icons/im";
 import { MdSortByAlpha } from "react-icons/md";
 import PropertyCard from "./PropertyCard";
 import { apiUrl } from "@/lib/api";
+import { parsePriceNumber } from "@/lib/price";
 
 interface Property {
   propertyId: string | number;
@@ -18,6 +19,8 @@ interface Property {
   floorLevel?: number | string;
   squareFeet?: number;
   spaces?: number;
+  virtualTourUrl?: string;
+  floorPlanUrl?: string;
   images?: Array<{ imageUrl: string }> | { imageUrl: string } | string | null;
 }
 
@@ -46,12 +49,6 @@ function normalizeToArray(raw: unknown): Property[] {
   if (Array.isArray(r.items)) return r.items as Property[];
   return [];
 }
-
-const toNumber = (v: unknown): number => {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") return Number(v.replace(/[^\d.]/g, ""));
-  return NaN;
-};
 
 const lower = (s?: string) => (s ?? "").toString().toLowerCase();
 /* ----------------------------------------- */
@@ -106,13 +103,13 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
     if (filters.minPrice) {
       const min = Number(filters.minPrice);
       if (!Number.isNaN(min)) {
-        result = result.filter((p) => toNumber(p.price) >= min);
+        result = result.filter((p) => parsePriceNumber(p.price) >= min);
       }
     }
     if (filters.maxPrice) {
       const max = Number(filters.maxPrice);
       if (!Number.isNaN(max)) {
-        result = result.filter((p) => toNumber(p.price) <= max);
+        result = result.filter((p) => parsePriceNumber(p.price) <= max);
       }
     }
 
@@ -172,26 +169,54 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
     );
 
   return (
-    <div className="pt-40 px-5 pb-10 bg-background min-h-screen">
-      {/* Sort Button */}
-      <div className="flex justify-start mb-6">
-        <button
-          onClick={handleSort}
-          className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-lg hover:bg-accent transition-colors"
-        >
-          <span className="font-title">Sort</span>
-          {sortOrder === 1 ? (
-            <ImSortAlphaAsc />
-          ) : sortOrder === 2 ? (
-            <ImSortAlphaDesc />
-          ) : (
-            <MdSortByAlpha />
-          )}
-        </button>
-      </div>
+    <main className="bg-real-estate-primary">
+      <section className="relative -mt-[7.75rem] overflow-hidden bg-real-estate-primary px-5 pb-14 pt-[11.75rem] text-white sm:-mt-28 sm:pt-44 md:pb-20">
+        <div className="absolute inset-0 opacity-35">
+          <img
+            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1800&auto=format&fit=crop"
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-real-estate-primary via-real-estate-primary/85 to-real-estate-primary/35" />
+        <div className="relative mx-auto max-w-7xl">
+          <p className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary sm:text-sm">
+            Prona të veçanta
+          </p>
+          <h1 className="mt-3 max-w-3xl font-title text-[clamp(2.1rem,9vw,3.75rem)] leading-[1.08] md:text-6xl">
+            Gjej pronën që i përshtatet mënyrës si jeton.
+          </h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
+            Shfleto shtëpi, banesa, hapësira komerciale dhe toka me media më të
+            qarta, filtra më të pastër dhe ture 360° kur janë të disponueshme.
+          </p>
+        </div>
+      </section>
+
+      <section className="bg-[#fbfaf7] px-5 py-10">
+        <div className="mx-auto mb-6 flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-title text-3xl text-real-estate-primary">
+              Prona të disponueshme
+            </h2>
+          </div>
+          <button
+            onClick={handleSort}
+            className="inline-flex w-fit items-center gap-2 rounded-md border border-real-estate-primary/15 bg-white px-4 py-2 text-sm font-medium text-real-estate-primary transition hover:border-real-estate-secondary"
+          >
+            <span>Rendit</span>
+            {sortOrder === 1 ? (
+              <ImSortAlphaAsc />
+            ) : sortOrder === 2 ? (
+              <ImSortAlphaDesc />
+            ) : (
+              <MdSortByAlpha />
+            )}
+          </button>
+        </div>
 
       {/* Property Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 gap-y-6 gap-x-[34px] max-w-7xl mx-auto sm:grid-cols-2 lg:grid-cols-3">
         {filteredProperties.length > 0 ? (
           filteredProperties.map((property) => (
             <PropertyCard
@@ -203,12 +228,13 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
         ) : (
           <div className="col-span-full text-center py-20">
             <p className="text-muted-foreground text-lg">
-              No properties found for the selected filters.
+              Nuk u gjet asnjë pronë për filtrat e zgjedhur.
             </p>
           </div>
         )}
       </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

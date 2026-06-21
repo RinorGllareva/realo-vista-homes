@@ -1,16 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Phone } from "lucide-react";
 import logoImage from "../assets/LogoMainSection.png";
-import { GiGalaxy } from "react-icons/gi";
 
 const Footer = () => {
   const navigate = useNavigate();
-
-  const handleRedirect = () => navigate("/contact-us");
-  const handleHomeRedirect = () => navigate("/");
-  const handlePropertyRedirect = () => navigate("/Property");
-
-  /* ---------- Secret login trigger ---------- */
   const [taps, setTaps] = useState(0);
   const resetTimer = useRef<number | null>(null);
 
@@ -28,107 +22,95 @@ const Footer = () => {
     });
   };
 
-  // OPTIONAL: Ctrl+Shift+L to go to /login
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "l") {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "l") {
         navigate("/login");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [navigate]);
-  /* ----------------------------------------- */
 
   return (
-    <footer className="w-full font-text py-10 text-lg bg-real-estate-primary text-real-estate-secondary">
-      <div className="max-w-6xl mx-auto px-5">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-          {/* Logo and Address Section */}
-          <div className="text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-              <img src={logoImage} alt="REALO Logo" className="w-32" />
-              <h3 className="font-title text-sm">REAL-ESTATE</h3>
-            </div>
-            <p className="text-base">
-              Kosovo, Rr.Tirana, Icon Tower, Prishtina 10000
-            </p>
-          </div>
-
-          {/* About Company Section */}
-          <div className="text-center md:text-left">
-            <h6 className="font-text text-lg mb-5 relative">
-              Rreth Kompanisë
-              <span className="absolute -bottom-2 left-0 md:left-0 w-12 h-px bg-gray-500"></span>
-            </h6>
-            <p className="text-base mb-4">
-              Ekipi ynë, në zemër të qytetit, ofron shërbim të personalizuar për
-              çdo nevojë.
-            </p>
-            <div className="flex flex-col gap-2">
-              <a
-                href="/about"
-                className="inline-block text-real-estate-secondary border border-real-estate-secondary rounded-full px-4 py-1 text-sm transition-colors hover:bg-real-estate-secondary hover:text-real-estate-primary"
-              >
-                Na Kontaktoni
-              </a>
-              <a
-                onClick={handleRedirect}
-                className="inline-block text-real-estate-secondary border border-real-estate-secondary rounded-full px-4 py-1 text-sm transition-colors hover:bg-real-estate-secondary hover:text-real-estate-primary cursor-pointer"
-              >
-                +38348282262
-              </a>
-            </div>
-          </div>
-
-          {/* Help Us Section */}
-          <div className="text-center md:text-left">
-            <h6 className="font-text text-lg mb-5 relative">
-              Na Ndihmoni
-              <span className="absolute -bottom-2 left-0 md:left-0 w-12 h-px bg-gray-500"></span>
-            </h6>
-            <ul className="list-none space-y-2">
-              <li>
-                <a
-                  onClick={handleHomeRedirect}
-                  className="font-text text-real-estate-secondary cursor-pointer hover:text-white transition-colors"
-                >
-                  Home
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/about"
-                  className="font-text text-real-estate-secondary hover:text-white transition-colors"
-                >
-                  Rreth Nesh
-                </a>
-              </li>
-              <li>
-                <a
-                  onClick={handleRedirect}
-                  className="font-text text-real-estate-secondary cursor-pointer hover:text-white transition-colors"
-                >
-                  Kontakoni
-                </a>
-              </li>
-            </ul>
-          </div>
+    <footer className="bg-real-estate-primary px-5 py-10 text-real-estate-secondary">
+      <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.2fr_1fr_1fr]">
+        <div>
+          <button
+            onClick={() => navigate("/")}
+            className="mb-4 flex items-center gap-3"
+            aria-label="Go to home page"
+          >
+            <img src={logoImage} alt="REALO Logo" className="h-14 w-auto" />
+            <span className="font-title text-sm tracking-[0.18em]">
+              REAL ESTATE
+            </span>
+          </button>
+          <p className="max-w-sm text-sm leading-6 text-white/70">
+            Kosovo, Rr. Tirana, Icon Tower, Prishtina 10000
+          </p>
+          <a
+            href="tel:+38348282262"
+            className="mt-4 inline-flex items-center gap-2 text-sm text-white/80"
+          >
+            <Phone className="h-4 w-4 text-real-estate-secondary" />
+            +383 48 282 262
+          </a>
         </div>
 
-        <div className="text-center md:text-right mt-8">
-          <p className="text-sm flex items-center justify-center md:justify-end gap-1">
-            Website Created By Gllarix <GiGalaxy />
+        <div>
+          <h3 className="font-text text-sm uppercase tracking-[0.22em]">
+            Rreth Realo
+          </h3>
+          <p className="mt-4 text-sm leading-6 text-white/70">
+            Realo Real Estate është një ekip lokal që ju ndihmon të gjeni,
+            shisni ose jepni me qira pronën tuaj me më shumë qartësi, kujdes
+            dhe informacion të saktë për tregun.
           </p>
+          <button
+            onClick={() => navigate("/contact-us")}
+            className="mt-4 rounded-md border border-real-estate-secondary px-4 py-2 text-sm font-medium transition hover:bg-real-estate-secondary hover:text-real-estate-primary"
+          >
+            Na Kontaktoni
+          </button>
+        </div>
+
+        <div>
+          <h3 className="font-text text-sm uppercase tracking-[0.22em]">
+            Shfleto
+          </h3>
+          <div className="mt-4 flex flex-col gap-3 text-sm text-white/75">
+            <button
+              onClick={() => navigate("/")}
+              className="text-left transition hover:text-real-estate-secondary"
+            >
+              Ballina
+            </button>
+            <button
+              onClick={() => navigate("/Property")}
+              className="text-left transition hover:text-real-estate-secondary"
+            >
+              Prona
+            </button>
+            <button
+              onClick={() => navigate("/contact-us")}
+              className="text-left transition hover:text-real-estate-secondary"
+            >
+              Kontakti
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Secret, non-intrusive button: fixed so it doesn't affect layout */}
+      <div className="mx-auto mt-8 max-w-6xl border-t border-white/10 pt-5 text-center text-xs text-white/50 md:text-left">
+        Faqja u krijua nga Glaxio.
+      </div>
+
       <button
         onClick={handleSecretTap}
         aria-label="open admin"
         title=" "
-        className="fixed bottom-3 right-3 h-6 w-6 rounded-full opacity-0 hover:opacity-20 focus:opacity-20 transition-opacity"
+        className="fixed bottom-3 right-3 h-6 w-6 rounded-full opacity-0 transition-opacity hover:opacity-20 focus:opacity-20"
       />
     </footer>
   );

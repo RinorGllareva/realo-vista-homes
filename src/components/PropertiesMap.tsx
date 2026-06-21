@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { apiUrl } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { formatPublicPrice } from "@/lib/price";
 
 // Fix for default marker icons in Leaflet with bundlers
 import "leaflet/dist/leaflet.css";
@@ -13,7 +14,7 @@ interface Property {
   propertyId: string;
   title: string;
   city: string;
-  price: number;
+  price: number | string;
   propertyType: string;
   isForSale: boolean;
   isForRent: boolean;
@@ -22,7 +23,7 @@ interface Property {
   images?: Array<{ imageUrl: string }>;
 }
 
-// Custom red marker icon
+// Custom brand marker icon
 const createCustomIcon = () => {
   return L.divIcon({
     className: "custom-property-marker",
@@ -41,11 +42,12 @@ const createCustomIcon = () => {
 const getPropertyTypeName = (propertyType: string) => {
   const typeMapping: Record<string, string> = {
     house: "Shtëpi",
-    apartment: "Banesa",
+    apartment: "Banesë",
     office: "Zyrë",
     store: "Lokal",
-    land: "Toka",
-    building: "Objekte",
+    land: "Tokë",
+    warehouse: "Depo",
+    building: "Objekt",
   };
   return typeMapping[propertyType.toLowerCase()] || propertyType;
 };
@@ -77,7 +79,7 @@ const PropertiesMap: React.FC = () => {
 
         setProperties(validProperties);
       } catch (err) {
-        setError("Nuk mund të ngarkoheshin pronat");
+        setError("Pronat nuk mund të ngarkohen.");
         console.error("Error fetching properties:", err);
       } finally {
         setLoading(false);
@@ -96,17 +98,20 @@ const PropertiesMap: React.FC = () => {
   };
 
   const customIcon = createCustomIcon();
+  const saleCount = properties.filter((property) => property.isForSale).length;
+  const rentCount = properties.filter((property) => property.isForRent || !property.isForSale).length;
+  const cityCount = new Set(properties.map((property) => property.city).filter(Boolean)).size;
 
   if (loading) {
     return (
-      <section className="py-12 md:py-16 bg-[#ebe1cf]">
+      <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="font-title text-3xl md:text-4xl text-[#7e7859] mb-2">
-              Gjeni Pronat në Hartë
+            <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
+              Shfleto pronat në hartë
             </h2>
-            <p className="text-[#888]">
-              Shfleto pronat tona në hartë interaktive
+            <p className="text-white/70">
+              Shiko pronat e disponueshme përmes hartës interaktive.
             </p>
           </div>
           <Skeleton className="w-full h-[400px] md:h-[500px] rounded-lg" />
@@ -117,11 +122,11 @@ const PropertiesMap: React.FC = () => {
 
   if (error) {
     return (
-      <section className="py-12 md:py-16 bg-[#ebe1cf]">
+      <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="font-title text-3xl md:text-4xl text-[#7e7859] mb-2">
-              Gjeni Pronat në Hartë
+            <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
+              Shfleto pronat në hartë
             </h2>
           </div>
           <div className="w-full h-[400px] md:h-[500px] rounded-lg bg-muted flex items-center justify-center">
@@ -133,18 +138,35 @@ const PropertiesMap: React.FC = () => {
   }
 
   return (
-    <section className="py-12 md:py-16 bg-[#ebe1cf]">
+      <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
-            Gjeni Pronat në Hartë
+            Shfleto pronat në hartë
           </h2>
           <p className="text-gray-400">
-            Shfleto pronat tona në hartë interaktive
+            Shiko pronat e disponueshme përmes hartës interaktive.
           </p>
+          <div className="mx-auto mt-6 grid max-w-2xl grid-cols-3 gap-3">
+            {[
+              [`${properties.length}`, "Në hartë"],
+              [`${cityCount}`, "Qytete"],
+              [`${saleCount}/${rentCount}`, "Shitje / Qira"],
+            ].map(([value, label]) => (
+              <div
+                key={label}
+                className="border border-real-estate-secondary/25 bg-white/5 px-3 py-3"
+              >
+                <p className="font-title text-2xl text-real-estate-secondary">{value}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/65">
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="w-full h-[400px] md:h-[500px] rounded-lg overflow-hidden shadow-lg">
+        <div className="mx-auto h-[400px] w-full max-w-7xl overflow-hidden rounded-lg border border-real-estate-secondary/30 bg-white p-2 shadow-2xl md:h-[520px]">
           <MapContainer
             center={[42.6629, 21.1655]}
             zoom={11}
@@ -181,22 +203,22 @@ const PropertiesMap: React.FC = () => {
                       {property.city}
                     </p>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="bg-orange-500 text-white px-2 py-0.5 text-xs rounded">
-                        {property.isForSale ? "SHITJE" : "QERA"}
+                      <span className="bg-real-estate-primary text-real-estate-secondary px-2 py-0.5 text-xs rounded">
+                        {property.isForSale ? "Shitje" : "Qira"}
                       </span>
                       <span className="bg-real-estate-secondary text-white px-2 py-0.5 text-xs rounded">
                         {getPropertyTypeName(property.propertyType)}
                       </span>
                     </div>
                     <p className="text-lg font-bold text-real-estate-secondary mb-2">
-                      €{property.price.toLocaleString()}
+                      {formatPublicPrice(property.price)}
                     </p>
                     <Button
                       size="sm"
                       className="w-full bg-primary hover:bg-primary/90"
                       onClick={() => handlePropertyClick(property)}
                     >
-                      Shiko Detajet
+                      Shiko detajet
                     </Button>
                   </div>
                 </Popup>

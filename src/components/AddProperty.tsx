@@ -51,6 +51,8 @@ interface PropertyFormData {
   squareFeet: string;
   furniture: string;
   hasOwnershipDocument: boolean;
+  floorPlanUrl: string;
+  virtualTourUrl: string;
   latitude: string;
   longitude: string;
 }
@@ -70,6 +72,8 @@ const AddProperty = () => {
     squareFeet: "",
     furniture: "",
     hasOwnershipDocument: true,
+    floorPlanUrl: "",
+    virtualTourUrl: "",
     latitude: "",
     longitude: "",
   });
@@ -251,7 +255,7 @@ const AddProperty = () => {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {[
                     ["address", "Address", "123 Main St"],
-                    ["city", "City", "Prishtinë"],
+                    ["city", "City", "Pristina"],
                   ].map(([key, label, ph]) => (
                     <div key={key} className="space-y-2">
                       <Label htmlFor={key as string} className="text-slate-300">
@@ -424,7 +428,7 @@ const AddProperty = () => {
                 <h3 className="text-lg font-semibold text-slate-100">
                   Coordinates & Media
                 </h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {[
                     ["latitude", "Latitude", "42.6629", "number"],
                     ["longitude", "Longitude", "21.1655", "number"],
@@ -449,6 +453,38 @@ const AddProperty = () => {
                       />
                     </div>
                   ))}
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="floorPlanUrl" className="text-slate-300">
+                      Floor Plan URL
+                    </Label>
+                    <Input
+                      id="floorPlanUrl"
+                      type="url"
+                      className={field}
+                      value={formData.floorPlanUrl}
+                      onChange={(e) =>
+                        handleChange("floorPlanUrl", e.target.value)
+                      }
+                      placeholder="https://example.com/floor-plan.pdf"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="virtualTourUrl" className="text-slate-300">
+                      Pioneer Virtual Tour URL
+                    </Label>
+                    <Input
+                      id="virtualTourUrl"
+                      type="url"
+                      className={field}
+                      value={formData.virtualTourUrl}
+                      onChange={(e) =>
+                        handleChange("virtualTourUrl", e.target.value)
+                      }
+                      placeholder="https://pioneer-tour.example.com/index.html"
+                    />
+                  </div>
                 </div>
               </section>
 

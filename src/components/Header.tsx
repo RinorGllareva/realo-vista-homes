@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { CiPhone } from "react-icons/ci";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Menu, Phone, X } from "lucide-react";
 import logoImage from "../assets/LogoMainSection.png";
 
 const Header = () => {
@@ -8,169 +8,115 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const fixedGreen =
+    location.pathname.startsWith("/properties/") ||
+    location.pathname === "/contact-us" ||
+    location.pathname === "/Property";
 
-  // Check if we're on property detail page to always show scrolled state
-  const isPropertyDetailPage = location.pathname.startsWith('/properties/');
-  
   useEffect(() => {
-    if (isPropertyDetailPage) {
+    if (fixedGreen) {
       setScrolled(true);
       return;
     }
 
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    onScroll();
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [fixedGreen]);
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isPropertyDetailPage]);
-
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-  };
-
-  const handleViewMore = () => {
-    navigate("/Property");
-  };
-  
-  const handleRedirect = () => {
-    navigate("/contact-us");
-  };
-  
-  const handleHomeRedirect = () => {
-    navigate("/");
-  };
+  const navItems = [
+    { label: "Ballina", action: () => navigate("/") },
+    { label: "Prona", action: () => navigate("/Property") },
+    { label: "Lokacioni", action: () => navigate("/#map") },
+    { label: "Kontakti", action: () => navigate("/contact-us") },
+  ];
 
   return (
-    <>
-      {/* Top bar */}
-      <div
-        className={`fixed top-0 left-0 w-full z-[1000] transition-all duration-300 ease-in-out ${
-          scrolled
-            ? "bg-real-estate-dark text-white"
-            : "bg-real-estate-light text-muted-foreground"
-        }`}
-      >
-        <div className="flex justify-start items-center pt-2 px-5 text-base font-bold">
-          <p className="flex items-center gap-1">
-            <CiPhone />
-            <span className="text-real-estate-secondary font-bold">
-              +38348282262
-            </span>
-          </p>
+    <header
+      className={`fixed left-0 top-0 z-[1000] w-full transition-all duration-300 ${
+        scrolled
+          ? "border-b border-white/10 bg-real-estate-primary shadow-lg"
+          : "bg-gradient-to-b from-black/55 to-transparent"
+      }`}
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-3"
+          aria-label="Go to home page"
+        >
+          <img src={logoImage} alt="REALO Logo" className="h-12 w-auto" />
+          <span className="hidden font-title text-sm tracking-[0.18em] text-real-estate-secondary sm:inline">
+            REAL ESTATE
+          </span>
+        </button>
+
+        <nav className="hidden items-center gap-7 md:flex">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className="font-text text-sm uppercase tracking-[0.18em] text-white/85 transition-colors hover:text-real-estate-secondary"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <a
+            href="tel:+38348282262"
+            className="inline-flex items-center gap-2 text-sm text-white/80"
+          >
+            <Phone className="h-4 w-4 text-real-estate-secondary" />
+            +383 48 282 262
+          </a>
+          <button
+            onClick={() => navigate("/contact-us")}
+            className="rounded-md border border-real-estate-secondary bg-real-estate-secondary px-4 py-2 font-text text-sm font-semibold uppercase tracking-[0.14em] text-real-estate-primary transition hover:bg-white"
+          >
+            Ofroni Pronën
+          </button>
         </div>
+
+        <button
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-white/20 text-white md:hidden"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label="Toggle navigation"
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </div>
 
-      {/* Main Header */}
-      <header
-        className={`fixed w-full transition-all duration-300 ease-in-out z-[999] ${
-          scrolled
-            ? "bg-real-estate-primary text-white py-1 top-8"
-            : "bg-transparent py-5 top-10"
-        }`}
-      >
-        <div className="flex justify-between items-center max-w-full mx-0 px-5 pt-5">
-          <div
-            className={`flex items-center gap-2 cursor-pointer ${
-              scrolled
-                ? "text-real-estate-secondary"
-                : "text-real-estate-secondary"
-            }`}
-            onClick={handleHomeRedirect}
-          >
-            <img src={logoImage} alt="REALO Logo" className="w-40" />
-            <h3 className="font-title text-lg font-black">REAL-ESTATE</h3>
-          </div>
-
-          {/* Navigation Links */}
-          <nav
-            className={`hidden md:flex items-center gap-5 ${
-              menuOpen ? "flex" : "hidden md:flex"
-            } md:relative md:flex-row md:bg-transparent md:w-auto md:h-auto md:pt-0`}
-          >
-            <a
-              onClick={handleViewMore}
-              className={`font-text cursor-pointer text-xl font-medium transition-colors hover:text-real-estate-secondary ${
-                scrolled
-                  ? "text-real-estate-secondary"
-                  : "text-real-estate-secondary"
-              }`}
+      {menuOpen && (
+        <div className="border-t border-white/10 bg-real-estate-primary px-4 pb-5 md:hidden">
+          <nav className="flex flex-col gap-2 pt-3">
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  item.action();
+                  setMenuOpen(false);
+                }}
+                className="rounded-md px-3 py-3 text-left font-text text-sm uppercase tracking-[0.16em] text-white hover:bg-white/10"
+              >
+                {item.label}
+              </button>
+            ))}
+            <button
+              onClick={() => {
+                navigate("/contact-us");
+                setMenuOpen(false);
+              }}
+              className="mt-2 rounded-md bg-real-estate-secondary px-3 py-3 text-left font-text text-sm font-semibold uppercase tracking-[0.16em] text-real-estate-primary"
             >
-              Pronat
-            </a>
-            <a
-              href="/"
-              className={`font-text cursor-pointer text-xl font-medium transition-colors hover:text-real-estate-secondary ${
-                scrolled
-                  ? "text-real-estate-secondary"
-                  : "text-real-estate-secondary"
-              }`}
-            >
-              Lokacioni
-            </a>
-            <a
-              onClick={handleRedirect}
-              className={`font-text cursor-pointer text-xl font-medium font-bold uppercase px-3 py-2 border-2 rounded transition-all hover:text-real-estate-secondary ${
-                scrolled
-                  ? "text-real-estate-secondary border-real-estate-secondary/60"
-                  : "text-real-estate-secondary border-gray-400"
-              }`}
-            >
-              Ofroni Pronën Tuaj
-            </a>
+              Ofroni Pronën
+            </button>
           </nav>
-
-          {/* Burger Icon */}
-          <div
-            className="md:hidden text-3xl cursor-pointer text-white"
-            onClick={toggleMenu}
-          >
-            {menuOpen ? (
-              <span className="absolute right-5 top-5 text-real-estate-secondary z-[11000]">
-                ✕
-              </span>
-            ) : (
-              <span className="text-white z-[11000]">☰</span>
-            )}
-          </div>
         </div>
-
-        {/* Mobile Menu */}
-        {menuOpen && (
-          <>
-            <div
-              className="fixed top-0 left-0 w-full h-full bg-real-estate-primary/60 z-[9999]"
-              onClick={toggleMenu}
-            ></div>
-            <nav className="fixed top-0 right-0 w-64 h-full bg-real-estate-primary pt-16 z-[10000] flex flex-col items-center md:hidden">
-              <a
-                onClick={handleViewMore}
-                className="mt-20 text-base font-text text-real-estate-secondary cursor-pointer"
-              >
-                Pronat
-              </a>
-              <a
-                href="/"
-                className="mt-20 text-base font-text text-real-estate-secondary cursor-pointer"
-              >
-                Lokacioni
-              </a>
-              <a
-                onClick={handleRedirect}
-                className="mt-20 text-base font-text text-real-estate-secondary cursor-pointer"
-              >
-                Ofroni Pronën Tuaj
-              </a>
-            </nav>
-          </>
-        )}
-      </header>
-    </>
+      )}
+    </header>
   );
 };
 

@@ -40,6 +40,231 @@
   font-family: inherit;
 }
 
+html {
+  scrollbar-color: hsl(var(--real-estate-secondary)) #06130f;
+  scrollbar-width: thin;
+}
+
+body::-webkit-scrollbar,
+.realo-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+body::-webkit-scrollbar-track,
+.realo-scrollbar::-webkit-scrollbar-track {
+  background: linear-gradient(90deg, #06130f, #0a4834);
+  border-radius: 999px;
+}
+
+body::-webkit-scrollbar-thumb,
+.realo-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #c9ab03, #f0d46c);
+  border: 3px solid #06130f;
+  border-radius: 999px;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+.realo-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #f0d46c;
+}
+
+.realo-logo-draw {
+  stroke-width: 4.8;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 8px rgba(201, 171, 3, 0.35));
+  animation: realo-logo-draw 1.35s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.realo-logo-draw-delay {
+  animation-delay: 0.18s;
+}
+
+.realo-logo-fill {
+  opacity: 0;
+  animation: realo-logo-fill 0.75s ease 1.15s forwards;
+}
+
+.realo-logo-glow::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(201, 171, 3, 0.28), transparent 62%);
+  opacity: 0;
+  animation: realo-logo-glow 1.25s ease 1.15s forwards;
+}
+
+.realo-login-rise {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: realo-login-rise 0.7s ease 1.25s forwards;
+}
+
+.realo-route-loader {
+  animation: realo-loader-fade 1.95s ease forwards;
+}
+
+.realo-home-intro {
+  animation: realo-home-intro-exit 2.85s ease forwards;
+}
+
+.realo-home-intro-logo {
+  animation: realo-home-logo-zoom 2.55s cubic-bezier(0.72, 0, 0.2, 1) forwards;
+}
+
+.realo-home-intro-flash {
+  opacity: 0;
+  animation: realo-home-white-flash 2.85s ease forwards;
+}
+
+.realo-home-intro-black {
+  opacity: 0;
+  animation: realo-home-black-pass 2.85s ease forwards;
+}
+
+@keyframes realo-logo-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes realo-logo-fill {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes realo-logo-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.78);
+  }
+  45% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes realo-login-rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes realo-loader-fade {
+  0% {
+    opacity: 0;
+  }
+  18%,
+  74% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes realo-home-logo-zoom {
+  0% {
+    opacity: 1;
+    transform: scale(0.82);
+  }
+  44% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(18);
+  }
+}
+
+@keyframes realo-home-white-flash {
+  0%,
+  66% {
+    opacity: 0;
+  }
+  74% {
+    opacity: 0.92;
+  }
+  82% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes realo-home-black-pass {
+  0%,
+  76% {
+    opacity: 0;
+  }
+  84% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes realo-home-intro-exit {
+  0%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realo-logo-draw,
+  .realo-logo-draw-delay,
+  .realo-logo-fill,
+  .realo-logo-glow::before,
+  .realo-login-rise,
+  .realo-route-loader,
+  .realo-home-intro,
+  .realo-home-intro-logo,
+  .realo-home-intro-flash,
+  .realo-home-intro-black {
+    animation: none;
+  }
+
+  .realo-logo-draw {
+    stroke-dashoffset: 0;
+  }
+
+  .realo-logo-fill,
+  .realo-login-rise {
+    opacity: 1;
+    transform: none;
+  }
+
+  .realo-home-intro {
+    display: none;
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,6 +273,7 @@
   src: url("../public/fonts/FrizQuadrataNo.2W01.ttf") format("truetype"); /* Path corrected */
   font-weight: 100;
   font-style: normal;
+  font-display: swap;
 }
 
 /* MB PictureHouse One W01 - Regular */
@@ -56,6 +282,7 @@
   src: url("../public/fonts/MBPictureHouseOneW01Regular.ttf") format("truetype"); /* Path corrected */
   font-weight: 700; /* Bold weight */
   font-style: normal;
+  font-display: swap;
 }
 
 /* MIROLES - Regular Italic */
@@ -64,6 +291,7 @@
   src: url("../public/fonts/MIROLES400.ttf") format("truetype"); /* Path corrected */
   font-weight: 400;
   font-style: italic;
+  font-display: swap;
 }
 
 /* Madani Arabic Variable */
@@ -72,12 +300,14 @@
   src: url("../public/fonts/MadaniArabicVariable.ttf") format("truetype"); /* Added file extension */
   font-weight: 400;
   font-style: italic;
+  font-display: swap;
 }
 @font-face {
   font-family: "quickdsand";
   src: url("../public/fonts/Quicksand-Light.ttf") format("truetype"); /* Added file extension */
   font-weight: 400;
   font-style: italic;
+  font-display: swap;
 }
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.

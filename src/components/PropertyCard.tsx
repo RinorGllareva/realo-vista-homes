@@ -1,22 +1,22 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { IoBedOutline } from "react-icons/io5";
-import { PiBathtub } from "react-icons/pi";
-import { MdSquareFoot, MdMeetingRoom } from "react-icons/md";
-import { SiLevelsdotfyi } from "react-icons/si";
+import { Bath, BedDouble, Box, Eye, MapPin, Ruler } from "lucide-react";
+import { formatPublicPrice } from "@/lib/price";
 
 interface Property {
-  propertyId: string;
+  propertyId: string | number;
   title: string;
   city: string;
-  price: number;
+  price: number | string;
   propertyType: string;
   isForSale: boolean;
+  isForRent?: boolean;
   bedrooms?: number;
   bathrooms?: number;
   floorLevel?: number | string;
   squareFeet?: number;
   spaces?: number;
+  virtualTourUrl?: string;
+  floorPlanUrl?: string;
   images?: Array<{ imageUrl: string }>;
 }
 
@@ -25,161 +25,106 @@ interface PropertyCardProps {
   onClick: () => void;
 }
 
+const getPropertyTypeName = (propertyType = "") => {
+  const typeMapping: Record<string, string> = {
+    house: "Shtëpi",
+    apartment: "Banesë",
+    office: "Zyrë",
+    store: "Lokal",
+    land: "Tokë",
+    building: "Objekt",
+    warehouse: "Depo",
+  };
+  return typeMapping[propertyType.toLowerCase()] || propertyType || "Pronë";
+};
+
+const hasPositive = (value?: number | string) => {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0;
+};
+
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
-  const getPropertyTypeName = (propertyType: string) => {
-    const typeMapping: Record<string, string> = {
-      house: "Shtëpi",
-      apartment: "Banesa",
-      office: "Zyrë",
-      store: "Lokal",
-      land: "Toka",
-      building: "Objekte",
-    };
-    return typeMapping[propertyType.toLowerCase()] || propertyType;
-  };
-
-  const renderIcons = () => {
-    const type = property.propertyType.toLowerCase();
-    
-    const iconStyle = "text-lg text-muted-foreground";
-    const containerStyle = "flex flex-col items-center text-center";
-    const labelStyle = "text-xs text-muted-foreground mt-1";
-    const valueStyle = "text-sm font-medium";
-
-    switch (type) {
-      case "house":
-      case "apartment":
-        return (
-          <>
-            <div className={containerStyle}>
-              <IoBedOutline className={iconStyle} />
-              <span className={valueStyle}>{property.bedrooms || "-"}</span>
-              <p className={labelStyle}>Dhoma</p>
-            </div>
-            <div className={containerStyle}>
-              <PiBathtub className={iconStyle} />
-              <span className={valueStyle}>{property.bathrooms || "-"}</span>
-              <p className={labelStyle}>Banjo</p>
-            </div>
-            <div className={containerStyle}>
-              <SiLevelsdotfyi className={iconStyle} />
-              <span className={valueStyle}>{property.floorLevel || "-"}</span>
-              <p className={labelStyle}>{type === "house" ? "Katet" : "Kati"}</p>
-            </div>
-            <div className={containerStyle}>
-              <MdSquareFoot className={iconStyle} />
-              <span className={valueStyle}>{property.squareFeet || "-"}m²</span>
-              <p className={labelStyle}>Sipërfaqja</p>
-            </div>
-          </>
-        );
-
-      case "office":
-      case "store":
-        return (
-          <>
-            <div className={containerStyle}>
-              <MdMeetingRoom className={iconStyle} />
-              <span className={valueStyle}>{property.spaces || "-"}</span>
-              <p className={labelStyle}>Hapësirat</p>
-            </div>
-            <div className={containerStyle}>
-              <PiBathtub className={iconStyle} />
-              <span className={valueStyle}>{property.bathrooms || "-"}</span>
-              <p className={labelStyle}>Banjo</p>
-            </div>
-            <div className={containerStyle}>
-              <SiLevelsdotfyi className={iconStyle} />
-              <span className={valueStyle}>{property.floorLevel || "-"}</span>
-              <p className={labelStyle}>Kati</p>
-            </div>
-            <div className={containerStyle}>
-              <MdSquareFoot className={iconStyle} />
-              <span className={valueStyle}>{property.squareFeet || "-"}m²</span>
-              <p className={labelStyle}>Sipërfaqja</p>
-            </div>
-          </>
-        );
-
-      case "land":
-        return (
-          <div className={`${containerStyle} col-span-4 justify-center`}>
-            <MdSquareFoot className={iconStyle} />
-            <span className={valueStyle}>{property.squareFeet || "-"}m²</span>
-            <p className={labelStyle}>Sipërfaqja</p>
-          </div>
-        );
-
-      case "building":
-        return (
-          <>
-            <div className={containerStyle}>
-              <MdMeetingRoom className={iconStyle} />
-              <span className={valueStyle}>{property.spaces || "-"}</span>
-              <p className={labelStyle}>Hapësirat</p>
-            </div>
-            <div className={containerStyle}>
-              <SiLevelsdotfyi className={iconStyle} />
-              <span className={valueStyle}>{property.floorLevel || "-"}</span>
-              <p className={labelStyle}>Kati</p>
-            </div>
-            <div className={containerStyle}>
-              <MdSquareFoot className={iconStyle} />
-              <span className={valueStyle}>{property.squareFeet || "-"}m²</span>
-              <p className={labelStyle}>Sipërfaqja</p>
-            </div>
-          </>
-        );
-
-      default:
-        return null;
-    }
-  };
+  const image =
+    property.images?.[0]?.imageUrl ||
+    "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&auto=format&fit=crop";
+  const transaction = property.isForSale ? "Në shitje" : "Me qira";
+  const details = [
+    hasPositive(property.bedrooms)
+      ? { icon: BedDouble, label: `${property.bedrooms} Dhoma` }
+      : null,
+    hasPositive(property.bathrooms)
+      ? { icon: Bath, label: `${property.bathrooms} Banjo` }
+      : null,
+    hasPositive(property.squareFeet)
+      ? { icon: Ruler, label: `${property.squareFeet} m²` }
+      : null,
+    hasPositive(property.spaces)
+      ? { icon: Box, label: `${property.spaces} Hapësira` }
+      : null,
+  ].filter(Boolean) as Array<{ icon: React.ElementType; label: string }>;
 
   return (
-    <div
+    <article
       onClick={onClick}
-      className="relative cursor-pointer bg-card border border-border rounded-lg overflow-hidden 
-                 shadow-sm hover:shadow-md hover:transform hover:-translate-y-1 transition-all duration-300"
+      className="group relative min-h-[460px] cursor-pointer overflow-hidden rounded-lg border border-real-estate-secondary/40 bg-[#07130f] shadow-sm transition duration-300 hover:-translate-y-1 hover:border-real-estate-secondary hover:shadow-2xl hover:shadow-real-estate-primary/20"
     >
-      {/* Tags */}
-      <span className="absolute top-3 left-3 z-10 bg-orange-500 text-white px-2 py-1 text-xs font-bold rounded">
-        {property.isForSale ? "SHITJE" : "QERA"}
-      </span>
-      <span className="absolute top-3 right-3 z-10 bg-real-estate-secondary text-white px-2 py-1 text-xs font-bold rounded">
-        {getPropertyTypeName(property.propertyType)}
-      </span>
-
-      {/* Image */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
         <img
-          src={
-            property.images?.[0]?.imageUrl ||
-            "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800"
-          }
+          src={image}
           alt={property.title}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
           loading="lazy"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-real-estate-primary/55 to-black/10" />
       </div>
 
-      {/* Details */}
-      <div className="p-4">
-        <h3 className="font-text text-sm text-muted-foreground">{property.city}</h3>
-        <p className="font-text text-base font-bold text-foreground mb-1">{property.title}</p>
-        <p className="font-text text-xl text-real-estate-secondary font-light mb-3">
-          €{property.price.toLocaleString()}
-        </p>
+      <div className="relative flex min-h-[460px] flex-col justify-between p-6 text-white">
+        <div className="flex items-start justify-between gap-2">
+          <span
+            className={`rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] ${
+              property.isForSale
+                ? "bg-real-estate-primary text-real-estate-secondary"
+                : "bg-real-estate-secondary text-real-estate-primary"
+            }`}
+          >
+            {transaction}
+          </span>
+          <span className="rounded-md border border-real-estate-secondary/60 bg-black/30 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-real-estate-secondary">
+            {getPropertyTypeName(property.propertyType)}
+          </span>
+        </div>
+        {property.virtualTourUrl && (
+          <span className="absolute right-6 top-16 inline-flex items-center gap-1 rounded-md border border-real-estate-secondary/60 bg-black/40 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-real-estate-secondary">
+            <Eye className="h-3.5 w-3.5" />
+            Tur 360°
+          </span>
+        )}
 
-        {/* Separator */}
-        <hr className="border-border mb-3" />
+        <div>
+          <div className="mb-3 flex items-center gap-2 text-sm uppercase tracking-[0.18em] text-real-estate-secondary">
+          <MapPin className="h-4 w-4 text-real-estate-secondary" />
+          <span>{property.city || "Kosovë"}</span>
+        </div>
+          <h3 className="line-clamp-2 max-w-[95%] font-title text-2xl leading-tight text-white md:text-3xl">
+          {property.title}
+        </h3>
+          <div className="mt-3 font-title text-3xl text-real-estate-secondary">
+          {formatPublicPrice(property.price)}
+        </div>
 
-        {/* Icons Grid */}
-        <div className="grid grid-cols-4 gap-2">
-          {renderIcons()}
+        {details.length > 0 && (
+            <div className="mt-5 flex flex-wrap gap-3 border-t border-real-estate-secondary/20 pt-4">
+            {details.slice(0, 4).map(({ icon: Icon, label }) => (
+                <div key={label} className="flex items-center gap-2 text-sm text-white/85">
+                <Icon className="h-4 w-4 text-real-estate-secondary" />
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

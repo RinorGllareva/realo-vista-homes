@@ -33,6 +33,8 @@ interface PropertyFormData {
   squareFeet: string;
   furniture: string;
   hasOwnershipDocument: boolean;
+  floorPlanUrl: string;
+  virtualTourUrl: string;
   latitude: string;
   longitude: string;
 }
@@ -64,6 +66,8 @@ const EditProperty = () => {
     squareFeet: "",
     furniture: "",
     hasOwnershipDocument: true,
+    floorPlanUrl: "",
+    virtualTourUrl: "",
     latitude: "",
     longitude: "",
   });
@@ -98,6 +102,8 @@ const EditProperty = () => {
           squareFeet: (d.squareFeet ?? "").toString(),
           furniture: d.furniture ?? "",
           hasOwnershipDocument: !!d.hasOwnershipDocument,
+          floorPlanUrl: d.floorPlanUrl ?? "",
+          virtualTourUrl: d.virtualTourUrl ?? "",
           latitude: (d.latitude ?? "").toString(),
           longitude: (d.longitude ?? "").toString(),
         });
@@ -287,7 +293,7 @@ const EditProperty = () => {
                       className={field}
                       value={formData.city}
                       onChange={(e) => handleChange("city", e.target.value)}
-                      placeholder="Prishtinë"
+                      placeholder="Pristina"
                     />
                   </div>
                 </div>
@@ -431,7 +437,7 @@ const EditProperty = () => {
               {/* Coordinates */}
               <section className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-100">
-                  Coordinates
+                  Coordinates & Media
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
@@ -462,6 +468,38 @@ const EditProperty = () => {
                         handleChange("longitude", e.target.value)
                       }
                       placeholder="21.1655"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="floorPlanUrl" className="text-slate-300">
+                      Floor Plan URL
+                    </Label>
+                    <Input
+                      id="floorPlanUrl"
+                      type="url"
+                      className={field}
+                      value={formData.floorPlanUrl}
+                      onChange={(e) =>
+                        handleChange("floorPlanUrl", e.target.value)
+                      }
+                      placeholder="https://example.com/floor-plan.pdf"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="virtualTourUrl" className="text-slate-300">
+                      Pioneer Virtual Tour URL
+                    </Label>
+                    <Input
+                      id="virtualTourUrl"
+                      type="url"
+                      className={field}
+                      value={formData.virtualTourUrl}
+                      onChange={(e) =>
+                        handleChange("virtualTourUrl", e.target.value)
+                      }
+                      placeholder="https://pioneer-tour.example.com/index.html"
                     />
                   </div>
                 </div>

@@ -25,7 +25,7 @@ const PropertyPage = () => {
     minArea: "",
     maxArea: "",
     isForSale: null,
-    search: ""
+    search: "",
   });
 
   const [searchParams] = useSearchParams();
@@ -49,11 +49,17 @@ const PropertyPage = () => {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-real-estate-primary">
       <Helmet>
         <title>Prona ne Shitje dhe me Qera | Realo Real Estate</title>
-        <meta name="description" content="Shfletoni lista te pronave per shitje dhe me qera ne Prishtine dhe Kosove. Shtepi, banesa, troje, lokale dhe me shume." />
-        <meta name="keywords" content="prona ne shitje, prona me qera, shtepi prishtine, banesa kosove, troje per shitje, lokale per shitje" />
+        <meta
+          name="description"
+          content="Shfletoni lista te pronave per shitje dhe me qera ne Prishtine dhe Kosove. Shtepi, banesa, troje, lokale dhe me shume."
+        />
+        <meta
+          name="keywords"
+          content="prona ne shitje, prona me qera, shtepi prishtine, banesa kosove, troje per shitje, lokale per shitje"
+        />
         <link rel="canonical" href="https://realo-realestate.com/Property" />
       </Helmet>
       <PropertyHeader setFilters={setFilters} />
