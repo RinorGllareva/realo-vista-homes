@@ -73,7 +73,7 @@ const PropertiesMap: React.FC = () => {
               p.longitude &&
               !isNaN(Number(p.latitude)) &&
               !isNaN(Number(p.longitude)) &&
-              (p.isForSale || p.isForRent)
+              (p.isForSale || p.isForRent),
           )
           .slice(0, 60);
 
@@ -98,9 +98,6 @@ const PropertiesMap: React.FC = () => {
   };
 
   const customIcon = createCustomIcon();
-  const saleCount = properties.filter((property) => property.isForSale).length;
-  const rentCount = properties.filter((property) => property.isForRent || !property.isForSale).length;
-  const cityCount = new Set(properties.map((property) => property.city).filter(Boolean)).size;
 
   if (loading) {
     return (
@@ -138,7 +135,7 @@ const PropertiesMap: React.FC = () => {
   }
 
   return (
-      <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-16 md:py-20">
+    <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
@@ -147,23 +144,6 @@ const PropertiesMap: React.FC = () => {
           <p className="text-gray-400">
             Shiko pronat e disponueshme përmes hartës interaktive.
           </p>
-          <div className="mx-auto mt-6 grid max-w-2xl grid-cols-3 gap-3">
-            {[
-              [`${properties.length}`, "Në hartë"],
-              [`${cityCount}`, "Qytete"],
-              [`${saleCount}/${rentCount}`, "Shitje / Qira"],
-            ].map(([value, label]) => (
-              <div
-                key={label}
-                className="border border-real-estate-secondary/25 bg-white/5 px-3 py-3"
-              >
-                <p className="font-title text-2xl text-real-estate-secondary">{value}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/65">
-                  {label}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="mx-auto h-[400px] w-full max-w-7xl overflow-hidden rounded-lg border border-real-estate-secondary/30 bg-white p-2 shadow-2xl md:h-[520px]">

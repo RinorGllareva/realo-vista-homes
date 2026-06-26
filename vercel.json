@@ -1,11 +1,22 @@
 {
   "rewrites": [
     {
-      "source": "/share/:id",
-      "destination": "https://api.realo-realestate.com/api/Property/ShareProperty/:id"
+      "source": "/properties/:title/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(bot|crawler|spider|preview|facebookexternalhit|Facebot|facebot|Twitterbot|TwitterBot|twitterbot|WhatsApp|whatsapp|Viber|viber|TelegramBot|telegrambot|Discordbot|discordbot|LinkedInBot|linkedinbot|Slackbot|slackbot|SkypeUriPreview|skypeuripreview|Applebot|applebot).*"
+        }
+      ],
+      "destination": "/api/share/:id"
     },
     {
-      "source": "/((?!share).*)",
+      "source": "/share/:id",
+      "destination": "/api/share/:id"
+    },
+    {
+      "source": "/((?!share|api).*)",
       "destination": "/"
     }
   ]

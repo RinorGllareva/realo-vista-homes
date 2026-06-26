@@ -17,6 +17,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus } from "lucide-react";
 import { apiUrl } from "@/lib/api";
+import logoImage from "../assets/LogoMainSection.png";
 
 /* ---------------- helpers ---------------- */
 const toInt = (v: string) => {
@@ -36,6 +37,21 @@ const trimAll = <T extends Record<string, any>>(obj: T): T => {
   return out as T;
 };
 /* ----------------------------------------- */
+
+const adminPage =
+  "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(18,56,36,0.95),#050705_48%,#020302_100%)] text-[#f5f0e8] p-4 md:p-8";
+const adminPanel =
+  "border border-real-estate-secondary/20 bg-[#0d1510]/95 shadow-2xl shadow-black/25";
+const adminInput =
+  "rounded-none border-real-estate-secondary/20 bg-[#050705] text-[#f5f0e8] placeholder:text-[#f5f0e8]/30 focus:border-real-estate-secondary focus:ring-2 focus:ring-real-estate-secondary/20";
+const sectionPanel =
+  "space-y-4 border border-real-estate-secondary/15 bg-[#08150f] p-5";
+const sectionTitle =
+  "font-text text-xs font-bold uppercase tracking-[0.28em] text-real-estate-secondary";
+const primaryGoldButton =
+  "rounded-none border border-real-estate-secondary bg-real-estate-secondary px-6 py-5 font-text text-xs font-bold uppercase tracking-[0.2em] text-real-estate-primary hover:bg-[#f1d676]";
+const outlineGoldButton =
+  "rounded-none border-real-estate-secondary/40 bg-transparent px-5 py-5 font-text text-xs font-bold uppercase tracking-[0.2em] text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary";
 
 interface PropertyFormData {
   title: string;
@@ -153,47 +169,53 @@ const AddProperty = () => {
     }
   };
 
-  // shared field classes for dark theme (unchanged)
-  const field =
-    "bg-[#0b1220] text-slate-200 placeholder:text-slate-500 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
+  const field = adminInput;
 
   return (
-    <div className="min-h-screen bg-[#0b1220] text-slate-200 p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div className={adminPage}>
+      <div className="mx-auto max-w-5xl space-y-6">
         {/* Header */}
-        <Card className="border border-slate-800 bg-[#0f172a]/70 backdrop-blur-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        <Card className={adminPanel}>
+          <CardHeader className="p-5 md:p-6">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <img src={logoImage} alt="Realo Real Estate" className="h-14 w-auto object-contain" />
+                <div className="h-px w-full bg-real-estate-secondary/20 sm:h-12 sm:w-px" />
+                <div>
+                  <p className="font-text text-xs uppercase tracking-[0.32em] text-real-estate-secondary">
+                    Admin Studio
+                  </p>
+                  <CardTitle className="mt-2 font-title text-4xl font-normal leading-none text-[#f5f0e8] md:text-5xl">
+                    Add New Property
+                  </CardTitle>
+                </div>
+              </div>
+              <div>
                 <Button
-                  className="border-slate-700 bg-[#0b1220] text-slate-200 hover:bg-slate-800"
+                  className={outlineGoldButton}
                   variant="outline"
-                  size="sm"
                   onClick={() => navigate("/dashboard")}
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
+                  Dashboard
                 </Button>
-                <CardTitle className="text-2xl text-slate-100">
-                  Add New Property
-                </CardTitle>
               </div>
             </div>
           </CardHeader>
         </Card>
 
         {/* Form */}
-        <Card className="border border-slate-800 bg-[#0f172a]">
-          <CardContent className="p-6">
+        <Card className={adminPanel}>
+          <CardContent className="p-5 md:p-6">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-100">
-                  Basic Information
+              <section className={sectionPanel}>
+                <h3 className={sectionTitle}>
+                  Listing Basics
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="title" className="text-slate-300">
+                    <Label htmlFor="title" className="text-[#f5f0e8]/75">
                       Property Title
                     </Label>
                     <Input
@@ -206,7 +228,7 @@ const AddProperty = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="propertyType" className="text-slate-300">
+                    <Label htmlFor="propertyType" className="text-[#f5f0e8]/75">
                       Property Type
                     </Label>
                     <Select
@@ -216,7 +238,7 @@ const AddProperty = () => {
                       <SelectTrigger className={field}>
                         <SelectValue placeholder="Select property type" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#0b1220] text-slate-200 border-slate-700">
+                      <SelectContent className="border-real-estate-secondary/25 bg-[#050705] text-[#f5f0e8]">
                         {/* Use capitalized values to match filters elsewhere */}
                         <SelectItem value="House">House</SelectItem>
                         <SelectItem value="Apartment">Apartment</SelectItem>
@@ -231,7 +253,7 @@ const AddProperty = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-slate-300">
+                  <Label htmlFor="description" className="text-[#f5f0e8]/75">
                     Description
                   </Label>
                   <Textarea
@@ -248,8 +270,8 @@ const AddProperty = () => {
               </section>
 
               {/* Location */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-100">
+              <section className={sectionPanel}>
+                <h3 className={sectionTitle}>
                   Location
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -258,7 +280,7 @@ const AddProperty = () => {
                     ["city", "City", "Pristina"],
                   ].map(([key, label, ph]) => (
                     <div key={key} className="space-y-2">
-                      <Label htmlFor={key as string} className="text-slate-300">
+                      <Label htmlFor={key as string} className="text-[#f5f0e8]/75">
                         {label}
                       </Label>
                       <Input
@@ -279,13 +301,13 @@ const AddProperty = () => {
               </section>
 
               {/* Property Details */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-100">
-                  Property Details
+              <section className={sectionPanel}>
+                <h3 className={sectionTitle}>
+                  Property Facts
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price" className="text-slate-300">
+                    <Label htmlFor="price" className="text-[#f5f0e8]/75">
                       Price
                     </Label>
                     <Input
@@ -297,7 +319,7 @@ const AddProperty = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bedrooms" className="text-slate-300">
+                    <Label htmlFor="bedrooms" className="text-[#f5f0e8]/75">
                       Bedrooms
                     </Label>
                     <Input
@@ -310,7 +332,7 @@ const AddProperty = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bathrooms" className="text-slate-300">
+                    <Label htmlFor="bathrooms" className="text-[#f5f0e8]/75">
                       Bathrooms
                     </Label>
                     <Input
@@ -325,7 +347,7 @@ const AddProperty = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="squareFeet" className="text-slate-300">
+                    <Label htmlFor="squareFeet" className="text-[#f5f0e8]/75">
                       Square Feet
                     </Label>
                     <Input
@@ -343,8 +365,8 @@ const AddProperty = () => {
               </section>
 
               {/* Status & Availability */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-100">
+              <section className={sectionPanel}>
+                <h3 className={sectionTitle}>
                   Status & Availability
                 </h3>
                 <div className="flex flex-wrap gap-6">
@@ -357,7 +379,7 @@ const AddProperty = () => {
                         if (checked) handleChange("isForRent", false);
                       }}
                     />
-                    <Label htmlFor="isForSale" className="text-slate-300">
+                    <Label htmlFor="isForSale" className="text-[#f5f0e8]/75">
                       For Sale
                     </Label>
                   </div>
@@ -370,7 +392,7 @@ const AddProperty = () => {
                         if (checked) handleChange("isForSale", false);
                       }}
                     />
-                    <Label htmlFor="isForRent" className="text-slate-300">
+                    <Label htmlFor="isForRent" className="text-[#f5f0e8]/75">
                       For Rent
                     </Label>
                   </div>
@@ -384,7 +406,7 @@ const AddProperty = () => {
                     />
                     <Label
                       htmlFor="hasOwnershipDocument"
-                      className="text-slate-300"
+                      className="text-[#f5f0e8]/75"
                     >
                       Has Ownership Document
                     </Label>
@@ -393,15 +415,15 @@ const AddProperty = () => {
               </section>
 
               {/* Additional Details */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-100">
+              <section className={sectionPanel}>
+                <h3 className={sectionTitle}>
                   Additional Details
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {[["furniture", "Furniture", "Fully furnished"]].map(
                     ([key, label, ph, type]) => (
                       <div key={key} className="space-y-2">
-                        <Label htmlFor={key} className="text-slate-300">
+                        <Label htmlFor={key} className="text-[#f5f0e8]/75">
                           {label}
                         </Label>
                         <Input
@@ -424,8 +446,8 @@ const AddProperty = () => {
               </section>
 
               {/* Coordinates & Media */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-100">
+              <section className={sectionPanel}>
+                <h3 className={sectionTitle}>
                   Coordinates & Media
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -434,7 +456,7 @@ const AddProperty = () => {
                     ["longitude", "Longitude", "21.1655", "number"],
                   ].map(([key, label, ph, type]) => (
                     <div key={key} className="space-y-2">
-                      <Label htmlFor={key} className="text-slate-300">
+                      <Label htmlFor={key} className="text-[#f5f0e8]/75">
                         {label}
                       </Label>
                       <Input
@@ -456,7 +478,7 @@ const AddProperty = () => {
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="floorPlanUrl" className="text-slate-300">
+                    <Label htmlFor="floorPlanUrl" className="text-[#f5f0e8]/75">
                       Floor Plan URL
                     </Label>
                     <Input
@@ -471,7 +493,7 @@ const AddProperty = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="virtualTourUrl" className="text-slate-300">
+                    <Label htmlFor="virtualTourUrl" className="text-[#f5f0e8]/75">
                       Pioneer Virtual Tour URL
                     </Label>
                     <Input
@@ -495,14 +517,14 @@ const AddProperty = () => {
                   variant="outline"
                   onClick={() => navigate("/dashboard")}
                   disabled={loading}
-                  className="border-slate-700 bg-[#0b1220] text-slate-200 hover:bg-slate-800"
+                  className={outlineGoldButton}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="bg-blue-500 hover:bg-blue-500/90 text-white shadow-md"
+                  className={primaryGoldButton}
                 >
                   {loading ? (
                     "Adding..."

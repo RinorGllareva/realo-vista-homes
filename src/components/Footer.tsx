@@ -103,7 +103,16 @@ const Footer = () => {
       </div>
 
       <div className="mx-auto mt-8 max-w-6xl border-t border-white/10 pt-5 text-center text-xs text-white/50 md:text-left">
-        Faqja u krijua nga Glaxio.
+        Faqja u krijua nga{" "}
+        <a
+          href="https://gllarix.com"
+          target="_blank"
+          rel="noreferrer"
+          className="text-real-estate-secondary transition hover:text-white"
+        >
+          Gllarix
+        </a>
+        .
       </div>
 
       <button
