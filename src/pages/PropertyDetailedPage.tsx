@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
@@ -19,14 +19,21 @@ import {
   Maximize2,
   Play,
   Ruler,
+  Share2,
+  X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import PropertyCard from "../components/PropertyCard";
+import { PublicVirtualTour } from "@/components/PublicVirtualTour";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api";
 import { formatPublicPrice } from "@/lib/price";
+import type { VirtualTour } from "@/types/virtualTour";
 import logoImage from "../assets/LogoMainSection.png";
+import { useToast } from "@/hooks/use-toast";
 
 type ImgObj = { imageUrl: string };
 
@@ -150,10 +157,15 @@ const getAny = (property: Property, keys: string[]) => {
 const PropertyDetailedPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { toast } = useToast();
   const [property, setProperty] = useState<Property | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [internalTour, setInternalTour] = useState<VirtualTour | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [activeMediaPanel, setActiveMediaPanel] = useState<"tour" | "floor">("tour");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImageIndex, setLightboxImageIndex] = useState(0);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
 
   useEffect(() => {
     if (!id) return;
@@ -168,16 +180,36 @@ const PropertyDetailedPage = () => {
         headers: { Accept: "application/json" },
         signal: ac.signal,
       }),
+      axios
+        .get(apiUrl(`/api/Property/UpdatePropertyMedia/${id}`), {
+          headers: { Accept: "application/json" },
+          signal: ac.signal,
+        })
+        .catch(() => ({ data: null })),
+      axios
+        .get(apiUrl(`/api/VirtualTour/GetByProperty/${id}`), {
+          headers: { Accept: "application/json" },
+          signal: ac.signal,
+        })
+        .catch(() => ({ data: null })),
     ])
-      .then(([propertyRes, propertiesRes]) => {
+      .then(([propertyRes, propertiesRes, mediaRes, tourRes]) => {
         const current = pickOne(propertyRes.data);
         if (current) {
           const directImages = normalizeImages((current as any).images);
+          const media =
+            mediaRes?.data && typeof mediaRes.data === "object"
+              ? (mediaRes.data as Partial<Property>)
+              : {};
           setProperty({
             ...current,
+            floorPlanUrl: media.floorPlanUrl ?? current.floorPlanUrl,
+            virtualTourUrl: media.virtualTourUrl ?? current.virtualTourUrl,
             images: directImages.length ? directImages : normalizeImages((current as any).propertyImages),
           });
         }
+        const tour = tourRes?.data as VirtualTour | null;
+        setInternalTour(tour?.isPublished && tour.rooms?.length ? tour : null);
         setProperties(normalizeProperties(propertiesRes.data));
       })
       .catch((error) => {
@@ -188,6 +220,29 @@ const PropertyDetailedPage = () => {
 
     return () => ac.abort();
   }, [id]);
+
+  useEffect(() => {
+    if (!property) return;
+    if (internalTour?.rooms?.length || hasText(property.virtualTourUrl)) {
+      setActiveMediaPanel("tour");
+    } else if (hasText(property.floorPlanUrl)) {
+      setActiveMediaPanel("floor");
+    }
+  }, [internalTour?.rooms?.length, property?.propertyId, property?.virtualTourUrl, property?.floorPlanUrl]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightboxOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [lightboxOpen]);
 
   const similarProperties = useMemo(() => {
     if (!property) return [];
@@ -217,9 +272,20 @@ const PropertyDetailedPage = () => {
     ? images
     : [{ imageUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1800&auto=format&fit=crop" }];
   const heroImage = galleryImages[activeImage]?.imageUrl;
+  const shareImage = galleryImages[0]?.imageUrl || heroImage;
+  const propertyId = String(property.propertyId ?? id ?? "");
+  const encodedTitle = encodeURIComponent(property.title || "property");
+  const propertyUrl = `https://www.realo-realestate.com/properties/${encodedTitle}/${propertyId}`;
+  const shareVersion = encodeURIComponent((shareImage || propertyId).split("/").pop()?.slice(0, 80) || propertyId);
+  const shareUrl = `https://www.realo-realestate.com/share/${propertyId}?v=${shareVersion}`;
+  const whatsappMessage = encodeURIComponent(
+    `Pershendetje Realo, jam i/e interesuar per kete prone: ${property.title} - ${propertyUrl}`
+  );
+  const whatsappUrl = `https://wa.me/38348282262?text=${whatsappMessage}`;
   const hasCoordinates = hasPositive(property.latitude) && hasPositive(property.longitude);
   const hasFloorPlan = hasText(property.floorPlanUrl);
-  const hasVirtualTour = hasText(property.virtualTourUrl);
+  const hasInternalTour = !!internalTour?.isPublished && !!internalTour.rooms?.length;
+  const hasVirtualTour = hasInternalTour || hasText(property.virtualTourUrl);
   const isFloorPlanPdf = /\.pdf($|\?)/i.test(property.floorPlanUrl ?? "");
   const mediaPanel = hasVirtualTour
     ? activeMediaPanel
@@ -256,9 +322,56 @@ const PropertyDetailedPage = () => {
     property.city ? `Qyteti: ${property.city}` : null,
   ].filter(Boolean);
 
+  const openGalleryImage = (index: number) => {
+    setActiveImage(index);
+    setLightboxImageIndex(index);
+    setLightboxZoom(1);
+    setLightboxOpen(true);
+  };
   const nextImage = () => setActiveImage((index) => (index + 1) % galleryImages.length);
   const previousImage = () =>
     setActiveImage((index) => (index - 1 + galleryImages.length) % galleryImages.length);
+  const nextLightboxImage = () => {
+    setLightboxZoom(1);
+    setLightboxImageIndex((index) => (index + 1) % galleryImages.length);
+  };
+  const previousLightboxImage = () => {
+    setLightboxZoom(1);
+    setLightboxImageIndex((index) => (index - 1 + galleryImages.length) % galleryImages.length);
+  };
+  const handleShareProperty = async () => {
+    const shareTitle = `${property.title} | Realo Real Estate`;
+    const shareText = [property.city, formatPublicPrice(property.price)]
+      .filter(Boolean)
+      .join(" - ");
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      }
+    } catch (error) {
+      if ((error as DOMException)?.name === "AbortError") return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Linku u kopjua",
+        description: "Linku i pronës është gati për Viber, WhatsApp ose Facebook.",
+      });
+    } catch {
+      toast({
+        title: "Nuk u kopjua linku",
+        description: shareUrl,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#ebe1cf] text-real-estate-primary">
@@ -274,8 +387,21 @@ const PropertyDetailedPage = () => {
         />
         <link
           rel="canonical"
-          href={`https://realo-realestate.com/property/${id}`}
+          href={propertyUrl}
         />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={`${property.title} | Realo Real Estate`} />
+        <meta
+          property="og:description"
+          content={`${property.city ? `${property.city} - ` : ""}${formatPublicPrice(property.price)}`}
+        />
+        <meta property="og:url" content={propertyUrl} />
+        <meta property="og:image" content={shareImage} />
+        <meta property="og:image:secure_url" content={shareImage} />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${property.title} | Realo Real Estate`} />
+        <meta name="twitter:image" content={shareImage} />
       </Helmet>
       <Header />
 
@@ -310,6 +436,13 @@ const PropertyDetailedPage = () => {
                 <Compass size={17} /> Dhoma 360°
               </a>
             )}
+            <button
+              type="button"
+              onClick={handleShareProperty}
+              className="inline-flex items-center gap-2 border border-real-estate-secondary/70 px-5 py-3 font-text text-sm font-bold uppercase tracking-[0.22em] text-real-estate-secondary transition hover:bg-real-estate-secondary hover:text-real-estate-primary"
+            >
+              <Share2 size={17} /> Shpërndaje
+            </button>
           </div>
           {heroFacts.length > 0 && (
             <div className="mt-6 flex flex-nowrap gap-2 overflow-x-auto border-y border-real-estate-secondary/25 py-4 font-text text-[11px] uppercase tracking-[0.12em] text-white/80 sm:flex-wrap sm:text-xs md:grid md:grid-cols-5 md:gap-3 md:overflow-visible md:text-sm md:tracking-[0.18em]">
@@ -331,14 +464,37 @@ const PropertyDetailedPage = () => {
             <p className="font-text text-sm uppercase tracking-[0.28em] text-real-estate-secondary">Galeria</p>
             <h2 className="mt-2 font-title text-4xl text-real-estate-primary md:text-5xl">Fotot dhe turi virtual</h2>
           </div>
-          {hasVirtualTour && (
-            <a href="#virtual-tour" className="hidden items-center gap-2 border border-real-estate-secondary px-4 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-secondary md:inline-flex">
-              <Compass size={17} /> Hap turin 360°
-            </a>
-          )}
+          <div className="hidden items-center gap-3 md:flex">
+            {hasVirtualTour && (
+              <a href="#virtual-tour" className="inline-flex items-center gap-2 border border-real-estate-secondary px-4 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-secondary">
+                <Compass size={17} /> Hap turin 360°
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={handleShareProperty}
+              className="inline-flex items-center gap-2 border border-real-estate-secondary px-4 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-secondary transition hover:bg-real-estate-secondary hover:text-real-estate-primary"
+            >
+              <Share2 size={17} /> Shpërndaje
+            </button>
+          </div>
         </div>
         <div className="relative h-[300px] overflow-hidden rounded-md border border-real-estate-primary/15 bg-[#f5efe1] shadow-xl sm:h-[420px] md:h-[680px]">
-          <img loading="lazy" src={heroImage} alt={`${property.title} gallery`} className="h-full w-full object-cover" />
+          <button
+            type="button"
+            onClick={() => openGalleryImage(activeImage)}
+            className="h-full w-full cursor-zoom-in"
+            aria-label="Open image fullscreen"
+          >
+            <img loading="lazy" src={heroImage} alt={`${property.title} gallery`} className="h-full w-full object-cover" />
+          </button>
+          <button
+            type="button"
+            onClick={() => openGalleryImage(activeImage)}
+            className="absolute right-4 top-4 inline-flex items-center gap-2 bg-black/65 px-3 py-2 font-text text-xs uppercase tracking-[0.16em] text-real-estate-secondary"
+          >
+            <Maximize2 className="h-4 w-4" /> Fullscreen
+          </button>
           {galleryImages.length > 1 && (
             <>
               <button onClick={previousImage} className="absolute left-4 top-1/2 bg-black/60 p-3 text-real-estate-secondary">
@@ -354,7 +510,7 @@ const PropertyDetailedPage = () => {
           {galleryImages.map((img, index) => (
             <button
               key={`${img.imageUrl}-${index}`}
-              onClick={() => setActiveImage(index)}
+              onClick={() => openGalleryImage(index)}
               className={`h-20 w-28 shrink-0 overflow-hidden border bg-white sm:h-24 sm:w-36 ${
                 index === activeImage ? "border-real-estate-secondary" : "border-real-estate-secondary/20"
               }`}
@@ -372,6 +528,154 @@ const PropertyDetailedPage = () => {
       </section>
 
       {(hasVirtualTour || hasFloorPlan) && (
+        <section id="virtual-tour" className="scroll-mt-24 bg-[#ebe1cf] px-5 py-14 md:py-20">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-7">
+              <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="font-text text-sm uppercase tracking-[0.34em] text-real-estate-secondary">
+                    Prezantim imersiv
+                  </p>
+                  <h2 className="mt-2 max-w-4xl font-title text-[clamp(2.25rem,6vw,4.2rem)] leading-[0.98] text-real-estate-primary">
+                    Turi 360° dhe planimetria
+                  </h2>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                  {mediaPanel === "tour" && hasText(property.virtualTourUrl) && !hasInternalTour && (
+                    <a
+                      href={property.virtualTourUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm bg-real-estate-primary px-3 py-2 font-text text-[11px] uppercase tracking-[0.16em] text-real-estate-secondary transition hover:bg-real-estate-primary/90 sm:px-4 sm:text-xs"
+                    >
+                      <ExternalLink size={16} /> Hape
+                    </a>
+                  )}
+                  {mediaPanel === "floor" && hasFloorPlan && (
+                    <a
+                      href={property.floorPlanUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm bg-real-estate-primary px-3 py-2 font-text text-[11px] uppercase tracking-[0.16em] text-real-estate-secondary transition hover:bg-real-estate-primary/90 sm:px-4 sm:text-xs"
+                    >
+                      <ExternalLink size={16} /> Hape
+                    </a>
+                  )}
+                  {!(mediaPanel === "tour" && hasInternalTour) && (
+                    <button
+                      type="button"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm bg-real-estate-primary px-3 py-2 font-text text-[11px] uppercase tracking-[0.16em] text-real-estate-secondary transition hover:bg-real-estate-primary/90 sm:px-4 sm:text-xs"
+                      onClick={() => document.getElementById("realo-media-frame")?.requestFullscreen()}
+                    >
+                      <Maximize2 size={16} /> Ekran
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                {hasVirtualTour && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveMediaPanel("tour")}
+                    className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-3 py-2 font-text text-[11px] uppercase tracking-[0.16em] transition sm:px-4 sm:text-xs ${
+                      mediaPanel === "tour"
+                        ? "bg-real-estate-secondary text-real-estate-primary"
+                        : "bg-real-estate-primary text-real-estate-secondary hover:bg-real-estate-primary/90"
+                    }`}
+                  >
+                    <Compass size={17} /> 360°
+                  </button>
+                )}
+                {hasFloorPlan && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveMediaPanel("floor")}
+                    className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-3 py-2 font-text text-[11px] uppercase tracking-[0.16em] transition sm:px-4 sm:text-xs ${
+                      mediaPanel === "floor"
+                        ? "bg-real-estate-secondary text-real-estate-primary"
+                        : "bg-real-estate-primary text-real-estate-secondary hover:bg-real-estate-primary/90"
+                    }`}
+                  >
+                    <FileText size={17} /> Plan
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-3 font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary">
+              <span>{mediaPanel === "tour" ? (hasInternalTour ? "Realo 360°" : "Pioneer / Panoee 360°") : isFloorPlanPdf ? "Planimetri PDF" : "Planimetri"}</span>
+            </div>
+
+            {mediaPanel === "tour" && hasInternalTour && internalTour && (
+              <PublicVirtualTour tour={internalTour} propertyTitle={property.title} />
+            )}
+            {mediaPanel !== "tour" || !hasInternalTour ? (
+            <div id="realo-media-frame" className="relative overflow-hidden rounded-md bg-[#050706] shadow-xl">
+              {mediaPanel === "tour" && hasText(property.virtualTourUrl) && (
+                <iframe
+                  title={`${property.title} virtual tour`}
+                  src={property.virtualTourUrl}
+                  className="h-[430px] w-full bg-black sm:h-[560px] lg:h-[720px]"
+                  allow="fullscreen; accelerometer; gyroscope; xr-spatial-tracking"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              )}
+              {mediaPanel === "floor" && hasFloorPlan && (
+                isFloorPlanPdf ? (
+                  <iframe
+                    title={`${property.title} floor plan`}
+                    src={property.floorPlanUrl}
+                    className="h-[430px] w-full bg-white sm:h-[560px] lg:h-[720px]"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex min-h-[430px] items-center justify-center bg-[#120f0a] p-4 sm:min-h-[560px] lg:min-h-[720px]">
+                    <img
+                      src={property.floorPlanUrl}
+                      alt={`${property.title} floor plan`}
+                      className="max-h-[680px] w-full object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                )
+              )}
+            </div>
+            ) : null}
+
+            <div className="hidden">
+              {hasVirtualTour && (
+                <button
+                  type="button"
+                  onClick={() => setActiveMediaPanel("tour")}
+                  className={`border px-5 py-3 font-text text-xs uppercase tracking-[0.24em] transition ${
+                    mediaPanel === "tour"
+                      ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary"
+                      : "border-real-estate-secondary/45 text-real-estate-secondary hover:border-real-estate-secondary"
+                  }`}
+                >
+                  360°
+                </button>
+              )}
+              {hasFloorPlan && (
+                <button
+                  type="button"
+                  onClick={() => setActiveMediaPanel("floor")}
+                  className={`border px-5 py-3 font-text text-xs uppercase tracking-[0.24em] transition ${
+                    mediaPanel === "floor"
+                      ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary"
+                      : "border-real-estate-secondary/45 text-real-estate-secondary hover:border-real-estate-secondary"
+                  }`}
+                >
+                  Floor Plan
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {false && (hasVirtualTour || hasFloorPlan) && (
         <section id="virtual-tour" className="scroll-mt-24 border-y border-real-estate-secondary/20 bg-[#050706] text-[#f8f0df]">
           <div className="mx-auto max-w-7xl px-5 py-16 md:py-20">
             <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
@@ -381,7 +685,7 @@ const PropertyDetailedPage = () => {
               </div>
               {hasVirtualTour && (
                 <a href={property.virtualTourUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 border border-real-estate-secondary px-5 py-3 font-text text-sm uppercase tracking-[0.22em] text-real-estate-secondary transition hover:bg-real-estate-secondary hover:text-real-estate-primary">
-                  <Compass size={17} /> Open 360° Tour
+                  <Compass size={17} /> Hape
                 </a>
               )}
             </div>
@@ -393,13 +697,13 @@ const PropertyDetailedPage = () => {
               )}
               {hasFloorPlan && (
                 <button type="button" onClick={() => setActiveMediaPanel("floor")} className={`inline-flex items-center gap-2 border px-5 py-3 font-text text-sm uppercase tracking-[0.22em] transition ${mediaPanel === "floor" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/55 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"}`}>
-                  <FileText size={17} /> Floor Plan
+                  <FileText size={17} /> Plan
                 </button>
               )}
             </div>
             <div className="overflow-hidden rounded-md border border-real-estate-secondary/25 bg-black shadow-2xl shadow-black/50">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-real-estate-secondary/15 bg-[#0a0d0b] px-4 py-3">
-                <span className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary">{mediaPanel === "tour" ? "Pioneer 360° Tour" : "Floor Plan"}</span>
+                <span className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary">{mediaPanel === "tour" ? "Pioneer 360°" : "Floor Plan"}</span>
                 <div className="flex flex-wrap gap-2">
                   {mediaPanel === "tour" && hasVirtualTour && (
                     <a href={property.virtualTourUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-real-estate-secondary/50 px-3 py-2 font-text text-xs uppercase tracking-[0.18em] text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary">
@@ -435,7 +739,7 @@ const PropertyDetailedPage = () => {
                   <button type="button" onClick={() => setActiveMediaPanel("tour")} className={`border px-5 py-3 font-text text-xs uppercase tracking-[0.24em] ${mediaPanel === "tour" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/50 text-real-estate-secondary"}`}>Reception</button>
                 )}
                 {hasFloorPlan && (
-                  <button type="button" onClick={() => setActiveMediaPanel("floor")} className={`border px-5 py-3 font-text text-xs uppercase tracking-[0.24em] ${mediaPanel === "floor" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/50 text-real-estate-secondary"}`}>Floor Plan</button>
+                  <button type="button" onClick={() => setActiveMediaPanel("floor")} className={`border px-5 py-3 font-text text-xs uppercase tracking-[0.24em] ${mediaPanel === "floor" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/50 text-real-estate-secondary"}`}>Plan</button>
                 )}
               </div>
             </div>
@@ -563,10 +867,12 @@ const PropertyDetailedPage = () => {
               </div>
             </div>
             <Button
-              onClick={() => navigate("/contact-us")}
+              asChild
               className="mt-6 w-full bg-real-estate-secondary text-real-estate-primary hover:bg-white"
             >
+              <a href={whatsappUrl} target="_blank" rel="noreferrer">
               Kërko vizitë
+              </a>
             </Button>
           </aside>
         </div>
@@ -587,6 +893,79 @@ const PropertyDetailedPage = () => {
           </div>
           </div>
         </section>
+      )}
+
+      {lightboxOpen && (
+        <div className="fixed inset-0 z-[100] flex flex-col bg-black/95 text-white">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate font-text text-xs uppercase tracking-[0.22em] text-real-estate-secondary">
+                {property.title}
+              </p>
+              <p className="mt-1 text-xs text-white/55">
+                {lightboxImageIndex + 1} / {galleryImages.length}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLightboxZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))}
+                className="grid h-10 w-10 place-items-center border border-white/20 text-real-estate-secondary hover:bg-white/10"
+                aria-label="Zoom out"
+              >
+                <ZoomOut className="h-5 w-5" />
+              </button>
+              <span className="w-16 text-center font-text text-xs text-white/70">
+                {Math.round(lightboxZoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setLightboxZoom((value) => Math.min(4, Number((value + 0.25).toFixed(2))))}
+                className="grid h-10 w-10 place-items-center border border-white/20 text-real-estate-secondary hover:bg-white/10"
+                aria-label="Zoom in"
+              >
+                <ZoomIn className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(false)}
+                className="grid h-10 w-10 place-items-center border border-white/20 text-real-estate-secondary hover:bg-white/10"
+                aria-label="Close fullscreen image"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
+            {galleryImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={previousLightboxImage}
+                  className="fixed left-4 top-1/2 z-10 bg-black/70 p-3 text-real-estate-secondary hover:bg-black"
+                  aria-label="Previous image"
+                >
+                  <ArrowLeft />
+                </button>
+                <button
+                  type="button"
+                  onClick={nextLightboxImage}
+                  className="fixed right-4 top-1/2 z-10 bg-black/70 p-3 text-real-estate-secondary hover:bg-black"
+                  aria-label="Next image"
+                >
+                  <ArrowRight />
+                </button>
+              </>
+            )}
+            <img
+              src={galleryImages[lightboxImageIndex]?.imageUrl || heroImage}
+              alt={`${property.title} fullscreen`}
+              className="max-h-[82vh] max-w-full object-contain transition-transform duration-200"
+              style={{ transform: `scale(${lightboxZoom})` }}
+            />
+          </div>
+        </div>
       )}
 
       <Footer />

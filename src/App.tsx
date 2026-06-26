@@ -14,6 +14,7 @@ import Dashboard from "../src/pages/Dashboard";
 import AddProperty from "../src/components/AddProperty";
 import EditProperty from "../src/components/EditProperty";
 import ManageImages from "../src/components/ManageImages";
+import ManageTour from "../src/components/ManageTour";
 import PrivateRoute from "./PrivateRoute";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,14 @@ const AppRoutes = () => (
         element={
           <PrivateRoute>
             <ManageImages />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/manage-tour/:id"
+        element={
+          <PrivateRoute>
+            <ManageTour />
           </PrivateRoute>
         }
       />

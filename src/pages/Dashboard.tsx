@@ -74,6 +74,10 @@ interface Property {
   interiorVideo: string;
   floorPlanUrl?: string;
   virtualTourUrl?: string;
+  virtualTourId?: number | null;
+  virtualTourRoomCount?: number;
+  hasInternalVirtualTour?: boolean;
+  hasPublishedVirtualTour?: boolean;
   images?: Array<{ imageUrl: string }>;
 }
 
@@ -102,6 +106,9 @@ const formatPrice = (price: number | string) => {
     minimumFractionDigits: 0,
   }).format(n);
 };
+
+const hasAnyTour = (property: Pick<Property, "virtualTourUrl" | "hasInternalVirtualTour" | "hasPublishedVirtualTour">) =>
+  Boolean(property.hasInternalVirtualTour || property.hasPublishedVirtualTour || property.virtualTourUrl);
 
 const chartColors = ["#c9ab03", "#f1d676", "#0a4834", "#ebe1cf", "#8f7a30"];
 
@@ -198,8 +205,8 @@ const Dashboard: React.FC = () => {
     },
     {
       label: "360 Tours",
-      value: list.filter((p) => p.virtualTourUrl).length,
-      detail: "Pioneer tours",
+      value: list.filter(hasAnyTour).length,
+      detail: "internal and external tours",
     },
   ];
 
@@ -234,6 +241,7 @@ const Dashboard: React.FC = () => {
 
   const handleEditProperty = (id: number) => navigate(`/edit-property/${id}`);
   const handleManageImages = (id: number) => navigate(`/manage-images/${id}`);
+  const handleManageTour = (id: number) => navigate(`/manage-tour/${id}`);
   const handlePreviewProperty = (p: Property) =>
     navigate(`/properties/${encodeURIComponent(p.title)}/${p.propertyId}`);
 
@@ -523,12 +531,16 @@ const Dashboard: React.FC = () => {
                             </span>
                             <span
                               className={`border px-2.5 py-1 ${
-                                property.virtualTourUrl
+                                hasAnyTour(property)
                                   ? "border-real-estate-secondary/45 text-real-estate-secondary"
                                   : "border-[#f5f0e8]/10 text-[#f5f0e8]/35"
                               }`}
                             >
-                              {property.virtualTourUrl ? "Has tour" : "No tour"}
+                              {property.hasInternalVirtualTour
+                                ? `360 tour${property.virtualTourRoomCount ? ` (${property.virtualTourRoomCount})` : ""}`
+                                : property.virtualTourUrl
+                                ? "External tour"
+                                : "No tour"}
                             </span>
                             <span
                               className={`border px-2.5 py-1 ${
@@ -560,6 +572,15 @@ const Dashboard: React.FC = () => {
                             >
                               <Images className="mr-2 h-3.5 w-3.5" />
                               Media
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleManageTour(property.propertyId)}
+                              className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
+                            >
+                              <Video className="mr-2 h-3.5 w-3.5" />
+                              Tour
                             </Button>
                             <Button
                               size="sm"

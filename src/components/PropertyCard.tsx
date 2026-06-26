@@ -1,5 +1,5 @@
 import React from "react";
-import { Bath, BedDouble, Box, Eye, MapPin, Ruler } from "lucide-react";
+import { Bath, BedDouble, Box, Eye, FileText, MapPin, Ruler } from "lucide-react";
 import { formatPublicPrice } from "@/lib/price";
 
 interface Property {
@@ -16,6 +16,9 @@ interface Property {
   squareFeet?: number;
   spaces?: number;
   virtualTourUrl?: string;
+  hasInternalVirtualTour?: boolean;
+  hasPublishedVirtualTour?: boolean;
+  virtualTourRoomCount?: number;
   floorPlanUrl?: string;
   images?: Array<{ imageUrl: string }>;
 }
@@ -48,6 +51,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
     property.images?.[0]?.imageUrl ||
     "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&auto=format&fit=crop";
   const transaction = property.isForSale ? "Në shitje" : "Me qira";
+  const hasTour = Boolean(property.hasPublishedVirtualTour || property.virtualTourUrl);
+  const hasFloorPlan = Boolean(property.floorPlanUrl);
   const details = [
     hasPositive(property.bedrooms)
       ? { icon: BedDouble, label: `${property.bedrooms} Dhoma` }
@@ -93,10 +98,17 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
             {getPropertyTypeName(property.propertyType)}
           </span>
         </div>
-        {property.virtualTourUrl && (
+        {hasTour && (
           <span className="absolute right-6 top-16 inline-flex items-center gap-1 rounded-md border border-real-estate-secondary/60 bg-black/40 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-real-estate-secondary">
             <Eye className="h-3.5 w-3.5" />
             Tur 360°
+          </span>
+        )}
+
+        {hasFloorPlan && (
+          <span className={`absolute right-6 inline-flex items-center gap-1 rounded-md border border-real-estate-secondary/60 bg-black/40 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-real-estate-secondary ${hasTour ? "top-28" : "top-16"}`}>
+            <FileText className="h-3.5 w-3.5" />
+            Planimetri
           </span>
         )}
 

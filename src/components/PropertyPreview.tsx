@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, FileText } from "lucide-react";
 import { apiUrl } from "@/lib/api";
 import { formatPublicPrice } from "@/lib/price";
 
@@ -13,6 +13,8 @@ interface Property {
   propertyType: string;
   isForSale: boolean;
   virtualTourUrl?: string;
+  hasPublishedVirtualTour?: boolean;
+  floorPlanUrl?: string;
   images?: Array<{ imageUrl: string }> | { imageUrl: string } | string | null;
 }
 
@@ -104,6 +106,8 @@ const PropertyPreview: React.FC = () => {
           const image =
             normalizeImages(property.images)[0]?.imageUrl ||
             "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&auto=format&fit=crop";
+          const hasTour = Boolean(property.hasPublishedVirtualTour || property.virtualTourUrl);
+          const hasFloorPlan = Boolean(property.floorPlanUrl);
           return (
             <article
               key={String(property.propertyId)}
@@ -128,10 +132,16 @@ const PropertyPreview: React.FC = () => {
                 >
                   {property.isForSale ? "Në shitje" : "Me qira"}
                 </span>
-                {property.virtualTourUrl && (
+                {hasTour && (
                   <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-md bg-black/70 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-real-estate-secondary">
                     <Eye className="h-3.5 w-3.5" />
                     Tur 360°
+                  </span>
+                )}
+                {hasFloorPlan && (
+                  <span className={`absolute left-3 inline-flex items-center gap-1 rounded-md bg-black/70 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-real-estate-secondary ${hasTour ? "bottom-12" : "bottom-3"}`}>
+                    <FileText className="h-3.5 w-3.5" />
+                    Planimetri
                   </span>
                 )}
               </div>
