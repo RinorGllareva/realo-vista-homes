@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ChevronLeft, ChevronRight, Eye, FileText } from "lucide-react";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, normalizeMediaUrl } from "@/lib/api";
 import { formatPublicPrice } from "@/lib/price";
 
 interface Property {
@@ -104,7 +104,7 @@ const PropertyPreview: React.FC = () => {
       >
         {properties.map((property) => {
           const image =
-            normalizeImages(property.images)[0]?.imageUrl ||
+            normalizeMediaUrl(normalizeImages(property.images)[0]?.imageUrl) ||
             "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&auto=format&fit=crop";
           const hasTour = Boolean(property.hasPublishedVirtualTour || property.virtualTourUrl);
           const hasFloorPlan = Boolean(property.floorPlanUrl);

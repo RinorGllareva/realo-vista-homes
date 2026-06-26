@@ -38,7 +38,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, normalizeMediaUrl } from "@/lib/api";
 import logoImage from "../assets/LogoMainSection.png";
 
 interface Property {
@@ -462,7 +462,7 @@ const Dashboard: React.FC = () => {
                             <div className="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden border border-real-estate-secondary/20 bg-[#050705]">
                               {property.images?.[0]?.imageUrl ? (
                                 <img
-                                  src={property.images[0].imageUrl}
+                                  src={normalizeMediaUrl(property.images[0].imageUrl)}
                                   alt=""
                                   className="h-full w-full object-cover"
                                 />

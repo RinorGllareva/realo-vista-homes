@@ -29,7 +29,7 @@ import Footer from "../components/Footer";
 import PropertyCard from "../components/PropertyCard";
 import { PublicVirtualTour } from "@/components/PublicVirtualTour";
 import { Button } from "@/components/ui/button";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, normalizeMediaUrl } from "@/lib/api";
 import { formatPublicPrice } from "@/lib/price";
 import type { VirtualTour } from "@/types/virtualTour";
 import logoImage from "../assets/LogoMainSection.png";
@@ -84,11 +84,12 @@ const extractUrl = (value: unknown): string => {
 };
 
 const toAbsoluteUrl = (url: string) => {
-  if (!url) return "";
-  if (/^data:/.test(url) || /^https?:\/\//i.test(url)) return url;
-  if (url.startsWith("//")) return `https:${url}`;
-  if (url.startsWith("/")) return `${API_ORIGIN}${url}`;
-  return url;
+  const cleanUrl = normalizeMediaUrl(url);
+  if (!cleanUrl) return "";
+  if (/^data:/.test(cleanUrl) || /^https?:\/\//i.test(cleanUrl)) return cleanUrl;
+  if (cleanUrl.startsWith("//")) return `https:${cleanUrl}`;
+  if (cleanUrl.startsWith("/")) return `${API_ORIGIN}${cleanUrl}`;
+  return cleanUrl;
 };
 
 const toArray = (raw: unknown): any[] => {

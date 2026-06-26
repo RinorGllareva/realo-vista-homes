@@ -35,7 +35,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import axios from "axios";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, normalizeMediaUrl } from "@/lib/api";
 import logoImage from "../assets/LogoMainSection.png";
 
 interface PropertyImage {
@@ -117,11 +117,12 @@ const extractUrl = (val: unknown): string => {
 
 // make relative paths absolute to the API origin
 const toAbsoluteUrl = (u: string): string => {
-  if (!u) return "";
-  if (/^data:/.test(u) || /^https?:\/\//i.test(u)) return u;
-  if (u.startsWith("//")) return `https:${u}`;
-  if (u.startsWith("/")) return `${API_ORIGIN}${u}`;
-  return u;
+  const cleanUrl = normalizeMediaUrl(u);
+  if (!cleanUrl) return "";
+  if (/^data:/.test(cleanUrl) || /^https?:\/\//i.test(cleanUrl)) return cleanUrl;
+  if (cleanUrl.startsWith("//")) return `https:${cleanUrl}`;
+  if (cleanUrl.startsWith("/")) return `${API_ORIGIN}${cleanUrl}`;
+  return cleanUrl;
 };
 
 const toArray = (raw: any): any[] => {
@@ -495,7 +496,7 @@ const ManageImages: React.FC = () => {
   };
 
   const field = adminInput;
-  const cleanFloorPlanUrl = floorPlanUrl.trim();
+  const cleanFloorPlanUrl = normalizeMediaUrl(floorPlanUrl.trim());
   const cleanVirtualTourUrl = virtualTourUrl.trim();
   const isFloorPlanPdf = /\.pdf($|[?#])/i.test(cleanFloorPlanUrl);
   const hasFloorPlan = cleanFloorPlanUrl.length > 0;

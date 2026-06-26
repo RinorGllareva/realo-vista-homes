@@ -1,6 +1,7 @@
 import React from "react";
 import { Bath, BedDouble, Box, Eye, FileText, MapPin, Ruler } from "lucide-react";
 import { formatPublicPrice } from "@/lib/price";
+import { normalizeMediaUrl } from "@/lib/api";
 
 interface Property {
   propertyId: string | number;
@@ -48,7 +49,7 @@ const hasPositive = (value?: number | string) => {
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
   const image =
-    property.images?.[0]?.imageUrl ||
+    normalizeMediaUrl(property.images?.[0]?.imageUrl) ||
     "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&auto=format&fit=crop";
   const transaction = property.isForSale ? "Në shitje" : "Me qira";
   const hasTour = Boolean(property.hasPublishedVirtualTour || property.virtualTourUrl);

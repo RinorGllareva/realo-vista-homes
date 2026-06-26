@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { useNavigate } from "react-router-dom";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, normalizeMediaUrl } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatPublicPrice } from "@/lib/price";
@@ -171,7 +171,7 @@ const PropertiesMap: React.FC = () => {
                   <div className="p-2 min-w-[200px]">
                     {property.images?.[0]?.imageUrl && (
                       <img
-                        src={property.images[0].imageUrl}
+                        src={normalizeMediaUrl(property.images[0].imageUrl)}
                         alt={property.title}
                         className="w-full h-24 object-cover rounded mb-2"
                       />
