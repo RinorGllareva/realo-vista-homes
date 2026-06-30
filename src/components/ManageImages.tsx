@@ -299,9 +299,10 @@ const ManageImages: React.FC = () => {
         console.error("Error fetching property images:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch property images. Please try again.",
+          description: apiErrorMessage(error, "Failed to fetch property images. Please try again."),
           variant: "destructive",
         });
+        setProperty(null);
         setImages([]);
       } finally {
         setLoading(false);
@@ -312,6 +313,15 @@ const ManageImages: React.FC = () => {
   }, [id, toast]);
 
   const handleAddImage = async () => {
+    if (!property) {
+      toast({
+        title: "Property not found",
+        description: "Go back to the dashboard and open Media from an existing property.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const clean = newImageUrl.trim();
     if (!clean && !newImageFile) {
       toast({
@@ -578,7 +588,7 @@ const ManageImages: React.FC = () => {
             </div>
             <Button
               onClick={handleAddImage}
-              disabled={adding || (!newImageUrl.trim() && !newImageFile)}
+              disabled={adding || !property || (!newImageUrl.trim() && !newImageFile)}
               className={primaryGoldButton}
             >
               {adding ? (
