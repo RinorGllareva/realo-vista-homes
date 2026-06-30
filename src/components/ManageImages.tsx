@@ -35,7 +35,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import axios from "axios";
-import { apiUrl, normalizeMediaUrl } from "@/lib/api";
+import { apiErrorMessage, apiUrl, normalizeMediaUrl } from "@/lib/api";
 import logoImage from "../assets/LogoMainSection.png";
 
 interface PropertyImage {
@@ -351,7 +351,7 @@ const ManageImages: React.FC = () => {
       console.error("Error adding property image:", error);
       toast({
         title: "Error",
-        description: "Failed to add image.",
+        description: apiErrorMessage(error, "Failed to add image."),
         variant: "destructive",
       });
     } finally {
@@ -375,7 +375,7 @@ const ManageImages: React.FC = () => {
       console.error("Error upscaling property image:", error);
       toast({
         title: "Error",
-        description: "Failed to upscale image.",
+        description: apiErrorMessage(error, "Failed to upscale image."),
         variant: "destructive",
       });
     } finally {
@@ -448,7 +448,7 @@ const ManageImages: React.FC = () => {
       console.error("Error uploading floor plan:", error);
       toast({
         title: "Error",
-        description: "Failed to upload floor plan image.",
+        description: apiErrorMessage(error, "Failed to upload floor plan image."),
         variant: "destructive",
       });
     } finally {

@@ -19,7 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeft, Compass, Eye, GripVertical, Plus, Save, Trash2, Upload } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiUrl } from "@/lib/api";
+import { apiErrorMessage, apiUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -155,7 +155,7 @@ export default function ManageTour() {
       toast({ title: "Room added", description: "Panorama room was uploaded." });
     } catch (error) {
       console.error(error);
-      toast({ title: "Error", description: "Failed to upload panorama.", variant: "destructive" });
+      toast({ title: "Error", description: apiErrorMessage(error, "Failed to upload panorama."), variant: "destructive" });
     } finally {
       setUploading(false);
     }

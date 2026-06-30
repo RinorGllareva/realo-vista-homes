@@ -12,3 +12,8 @@ export const normalizeMediaUrl = (url?: string | null) => {
   if (!value) return "";
   return value.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/i, PUBLIC_API_ORIGIN);
 };
+
+export const apiErrorMessage = (error: unknown, fallback = "Request failed.") => {
+  const responseError = (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
+  return responseError?.error || responseError?.message || fallback;
+};
