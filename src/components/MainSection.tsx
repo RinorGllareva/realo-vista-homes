@@ -48,31 +48,35 @@ const MainSection: React.FC = () => {
         loop
         muted
         playsInline
+        preload="auto"
+        poster="/video/hero-poster.jpg"
+        aria-hidden="true"
       >
-        <source src="/Prishtina - Made with Clipchamp.mp4" type="video/mp4" />
+        <source src="/video/hero-720.mp4" type="video/mp4" media="(max-width: 767px)" />
+        <source src="/video/hero-1280.mp4" type="video/mp4" />
       </video>
       <div className="absolute inset-0 bg-black/60" />
 
       <div className="relative z-10 flex min-h-screen w-full max-w-6xl flex-col justify-end pb-10 pt-28 md:pb-20">
         <div className="mb-10 text-center">
           <div
-            className="mx-auto flex max-w-full flex-nowrap items-baseline justify-center gap-x-[clamp(0.25rem,1vw,0.75rem)] whitespace-nowrap text-real-estate-secondary"
+            className="mx-auto flex max-w-full flex-col items-center justify-center gap-y-1 text-real-estate-secondary sm:flex-row sm:items-baseline sm:gap-x-[clamp(0.25rem,1vw,0.75rem)] sm:whitespace-nowrap"
             aria-label="WELCOME TO REALO REAL ESTATE"
           >
-            <span className="font-text text-[clamp(1.5rem,4.5vw,4.5rem)] leading-none">
+            <span className="font-text text-[clamp(1.1rem,4.5vw,4.5rem)] leading-none tracking-[0.2em] sm:tracking-normal">
               WELCOME TO
             </span>
-            <h1 className="font-title text-[clamp(1.75rem,8.5vw,5.5rem)] leading-none">
+            <h1 className="font-title text-[clamp(3.25rem,8.5vw,5.5rem)] leading-none sm:text-[clamp(1.75rem,8.5vw,5.5rem)]">
               REALO
             </h1>
-            <span className="font-text text-[clamp(1.5rem,4.5vw,4.5rem)] leading-tight">
+            <span className="font-text text-[clamp(1.1rem,4.5vw,4.5rem)] leading-tight tracking-[0.2em] sm:tracking-normal">
               REAL ESTATE
             </span>
           </div>
         </div>
 
         <div className="mx-auto w-full max-w-5xl">
-          <h2 className="mb-3 text-left font-[Montserrat] text-lg font-medium text-white md:text-xl">
+          <h2 className="mb-3 text-left text-lg font-medium text-white md:text-xl">
             Gjej pronën ideale në Prishtinë
           </h2>
           <div className="grid gap-3 rounded-lg border border-real-estate-secondary/30 bg-white/5 p-3 shadow-2xl backdrop-blur-[2px] md:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
@@ -147,7 +151,7 @@ const MainSection: React.FC = () => {
 
             <button
               onClick={handleSearch}
-              className="rounded-md bg-real-estate-secondary px-7 py-3 font-text text-base font-bold uppercase tracking-[0.14em] text-real-estate-primary transition hover:bg-white"
+              className="rounded-md bg-real-estate-secondary px-7 py-3.5 font-text text-base font-bold uppercase tracking-[0.14em] text-real-estate-primary transition hover:bg-white"
             >
               Kërko
             </button>

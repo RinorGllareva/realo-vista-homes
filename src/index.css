@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&display=swap");
-
 /* Leaflet CSS */
 @import "leaflet/dist/leaflet.css";
 
@@ -268,6 +266,17 @@ body::-webkit-scrollbar-thumb:hover,
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @font-face {
   font-family: "Title"; /* Name you will use in CSS */
   src: url("../public/fonts/FrizQuadrataNo.2W01.ttf") format("truetype"); /* Path corrected */
@@ -285,30 +294,6 @@ body::-webkit-scrollbar-thumb:hover,
   font-display: swap;
 }
 
-/* MIROLES - Regular Italic */
-@font-face {
-  font-family: "Logo";
-  src: url("../public/fonts/MIROLES400.ttf") format("truetype"); /* Path corrected */
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
-/* Madani Arabic Variable */
-@font-face {
-  font-family: "FilterProperty";
-  src: url("../public/fonts/MadaniArabicVariable.ttf") format("truetype"); /* Added file extension */
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-@font-face {
-  font-family: "quickdsand";
-  src: url("../public/fonts/Quicksand-Light.ttf") format("truetype"); /* Added file extension */
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

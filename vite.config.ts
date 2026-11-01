@@ -38,7 +38,6 @@ export default defineConfig({
           ],
           maps: ["leaflet", "react-leaflet"],
           data: ["@tanstack/react-query", "axios"],
-          charts: ["recharts"],
         },
       },
     },

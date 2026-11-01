@@ -280,7 +280,7 @@ export default function ManageTour() {
               <Button variant="outline" className={outlineGoldButton} onClick={() => navigate("/dashboard")}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Dashboard
               </Button>
-              <Button className={goldButton} onClick={saveTour} disabled={saving}>
+              <Button className={goldButton} onClick={() => saveTour()} disabled={saving}>
                 <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save Draft"}
               </Button>
               <Button

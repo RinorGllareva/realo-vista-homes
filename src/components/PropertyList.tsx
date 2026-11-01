@@ -1,239 +1,197 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { ImSortAlphaAsc, ImSortAlphaDesc } from "react-icons/im";
-import { MdSortByAlpha } from "react-icons/md";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigationType } from "react-router-dom";
 import PropertyCard from "./PropertyCard";
-import { apiUrl } from "@/lib/api";
 import { parsePriceNumber } from "@/lib/price";
-
-interface Property {
-  propertyId: string | number;
-  title: string;
-  city: string;
-  price: number | string;
-  propertyType: string;
-  isForSale: boolean;
-  bedrooms?: number;
-  bathrooms?: number;
-  floorLevel?: number | string;
-  squareFeet?: number;
-  spaces?: number;
-  virtualTourUrl?: string;
-  floorPlanUrl?: string;
-  images?: Array<{ imageUrl: string }> | { imageUrl: string } | string | null;
-}
+import { useProperties } from "@/lib/properties";
+import type { Filters } from "../pages/PropertyPage";
 
 interface PropertyListProps {
-  filters: {
-    propertyType: string;
-    minPrice: string;
-    maxPrice: string;
-    bedrooms: string;
-    bathrooms?: string;
-    minArea: string;
-    maxArea: string;
-    isForSale: boolean | null;
-    search: string;
-  };
+  filters: Filters;
+  onChange: (patch: Partial<Filters> | null) => void;
 }
 
-/* ---------------- helpers ---------------- */
-function normalizeToArray(raw: unknown): Property[] {
-  if (Array.isArray(raw)) return raw as Property[];
-  if (!raw || typeof raw !== "object") return [];
-  const r = raw as any;
-  if (Array.isArray(r.$values)) return r.$values as Property[]; // .NET
-  if (Array.isArray(r.data)) return r.data as Property[];
-  if (Array.isArray(r.result)) return r.result as Property[];
-  if (Array.isArray(r.items)) return r.items as Property[];
-  return [];
-}
-
+const PAGE_SIZE = 24;
 const lower = (s?: string) => (s ?? "").toString().toLowerCase();
-/* ----------------------------------------- */
 
-const PropertyList: React.FC<PropertyListProps> = ({ filters }) => {
-  const navigate = useNavigate();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [sortOrder, setSortOrder] = useState<0 | 1 | 2>(0); // 0: none, 1: asc, 2: desc
+const SORTS = [
+  { value: "", label: "Të rekomanduara" },
+  { value: "newest", label: "Më të rejat" },
+  { value: "price-asc", label: "Çmimi: nga më i ulëti" },
+  { value: "price-desc", label: "Çmimi: nga më i larti" },
+  { value: "area-desc", label: "Sipërfaqja më e madhe" },
+];
 
-  // Fetch all properties (API call centralized via apiUrl)
+const priceOrInfinity = (value: unknown, fallback: number) => {
+  const n = parsePriceNumber(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const PropertyList: React.FC<PropertyListProps> = ({ filters, onChange }) => {
+  const { data: properties = [], isLoading, isError, refetch } = useProperties();
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const countKey = `realo:list-count:${location.search}`;
+
+  // How many cards are shown survives Back, so the card you opened is still on the page.
+  const [visible, setVisible] = useState(() => {
+    if (navigationType !== "POP") return PAGE_SIZE;
+    try {
+      return Math.max(PAGE_SIZE, Number(sessionStorage.getItem(countKey)) || 0);
+    } catch {
+      return PAGE_SIZE;
+    }
+  });
+
+  const filterSignature = JSON.stringify({ ...filters });
+  const firstSignature = useRef(filterSignature);
   useEffect(() => {
-    const ac = new AbortController();
+    if (filterSignature !== firstSignature.current) setVisible(PAGE_SIZE);
+  }, [filterSignature]);
 
-    (async () => {
-      try {
-        const url = apiUrl("/api/Property/GetProperties");
-        const res = await axios.get(url, {
-          headers: { Accept: "application/json" },
-          signal: ac.signal,
-        });
-        setProperties(normalizeToArray(res.data));
-      } catch (error: any) {
-        if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED")
-          return;
-        console.error("Error fetching properties:", error);
-        setProperties([]); // keep UI safe
-      }
-    })();
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(countKey, String(visible));
+    } catch {
+      /* storage unavailable */
+    }
+  }, [countKey, visible]);
 
-    return () => ac.abort();
-  }, []);
-
-  // Derived: filtered + sorted
-  const filteredProperties = useMemo(() => {
+  const filtered = useMemo(() => {
     let result = [...properties];
 
-    // search (title/city)
     if (filters.search) {
       const q = lower(filters.search);
-      result = result.filter(
-        (p) => lower(p.title).includes(q) || lower(p.city).includes(q)
-      );
+      result = result.filter((p) => lower(p.title).includes(q) || lower(p.city).includes(q));
     }
-
-    // property type (case-insensitive)
     if (filters.propertyType) {
       const t = lower(filters.propertyType);
       result = result.filter((p) => lower(p.propertyType) === t);
     }
-
-    // price range
-    if (filters.minPrice) {
-      const min = Number(filters.minPrice);
-      if (!Number.isNaN(min)) {
-        result = result.filter((p) => parsePriceNumber(p.price) >= min);
-      }
+    const min = Number(filters.minPrice);
+    if (filters.minPrice && !Number.isNaN(min)) {
+      result = result.filter((p) => parsePriceNumber(p.price) >= min);
     }
-    if (filters.maxPrice) {
-      const max = Number(filters.maxPrice);
-      if (!Number.isNaN(max)) {
-        result = result.filter((p) => parsePriceNumber(p.price) <= max);
-      }
+    const max = Number(filters.maxPrice);
+    if (filters.maxPrice && !Number.isNaN(max)) {
+      result = result.filter((p) => parsePriceNumber(p.price) <= max);
     }
-
-    // bedrooms/bathrooms exact match
     if (filters.bedrooms) {
       const b = parseInt(filters.bedrooms, 10);
+      const orMore = filters.bedrooms.endsWith("+");
       if (!Number.isNaN(b)) {
-        result = result.filter((p) => (p.bedrooms ?? -1) === b);
+        result = result.filter((p) => (orMore ? (p.bedrooms ?? -1) >= b : (p.bedrooms ?? -1) === b));
       }
     }
-    if (filters.bathrooms) {
-      const b = parseInt(filters.bathrooms, 10);
-      if (!Number.isNaN(b)) {
-        result = result.filter((p) => (p.bathrooms ?? -1) === b);
-      }
-    }
-
-    // area range
-    if (filters.minArea) {
-      const minA = parseInt(filters.minArea, 10);
-      if (!Number.isNaN(minA)) {
-        result = result.filter((p) => (p.squareFeet ?? 0) >= minA);
-      }
-    }
-    if (filters.maxArea) {
-      const maxA = parseInt(filters.maxArea, 10);
-      if (!Number.isNaN(maxA)) {
-        result = result.filter((p) => (p.squareFeet ?? 0) <= maxA);
-      }
-    }
-
-    // sale/rent
+    const minA = parseInt(filters.minArea, 10);
+    if (!Number.isNaN(minA)) result = result.filter((p) => (p.squareFeet ?? 0) >= minA);
+    const maxA = parseInt(filters.maxArea, 10);
+    if (!Number.isNaN(maxA)) result = result.filter((p) => (p.squareFeet ?? 0) <= maxA);
     if (filters.isForSale !== null) {
       result = result.filter((p) => p.isForSale === filters.isForSale);
     }
 
-    // sorting by propertyId (lexicographically)
-    if (sortOrder === 1) {
-      result.sort((a, b) =>
-        String(a.propertyId).localeCompare(String(b.propertyId))
-      );
-    } else if (sortOrder === 2) {
-      result.sort((a, b) =>
-        String(b.propertyId).localeCompare(String(a.propertyId))
-      );
+    switch (filters.sort) {
+      case "newest":
+        result.sort((a, b) => Number(b.propertyId) - Number(a.propertyId));
+        break;
+      case "price-asc":
+        result.sort((a, b) => priceOrInfinity(a.price, Infinity) - priceOrInfinity(b.price, Infinity));
+        break;
+      case "price-desc":
+        result.sort((a, b) => priceOrInfinity(b.price, -Infinity) - priceOrInfinity(a.price, -Infinity));
+        break;
+      case "area-desc":
+        result.sort((a, b) => (b.squareFeet ?? 0) - (a.squareFeet ?? 0));
+        break;
     }
-
     return result;
-  }, [properties, filters, sortOrder]);
+  }, [properties, filters]);
 
-  const handleSort = () =>
-    setSortOrder((prev) => (prev === 2 ? 0 : ((prev + 1) as 0 | 1 | 2)));
-
-  const handlePropertyClick = (property: Property) =>
-    navigate(
-      `/properties/${encodeURIComponent(property.title)}/${property.propertyId}`
-    );
+  const shown = filtered.slice(0, visible);
 
   return (
-    <main className="bg-real-estate-primary">
-      <section className="relative -mt-[7.75rem] overflow-hidden bg-real-estate-primary px-5 pb-14 pt-[11.75rem] text-white sm:-mt-28 sm:pt-44 md:pb-20">
-        <div className="absolute inset-0 opacity-35">
-          <img
-            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1800&auto=format&fit=crop"
-            alt=""
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-real-estate-primary via-real-estate-primary/85 to-real-estate-primary/35" />
-        <div className="relative mx-auto max-w-7xl">
-          <p className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary sm:text-sm">
-            Prona të veçanta
-          </p>
-          <h1 className="mt-3 max-w-3xl font-title text-[clamp(2.1rem,9vw,3.75rem)] leading-[1.08] md:text-6xl">
-            Gjej pronën që i përshtatet mënyrës si jeton.
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
-            Shfleto shtëpi, banesa, hapësira komerciale dhe toka me media më të
-            qarta, filtra më të pastër dhe ture 360° kur janë të disponueshme.
-          </p>
-        </div>
-      </section>
-
-      <section className="bg-[#fbfaf7] px-5 py-10">
-        <div className="mx-auto mb-6 flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="px-4 py-8 md:px-5 md:py-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="font-title text-3xl text-real-estate-primary">
-              Prona të disponueshme
-            </h2>
+            <h2 className="font-title text-3xl text-real-estate-primary">Prona të disponueshme</h2>
+            <p className="mt-1 text-sm text-real-estate-primary/60" aria-live="polite">
+              {isLoading ? "Duke ngarkuar pronat…" : `${filtered.length} prona`}
+            </p>
           </div>
-          <button
-            onClick={handleSort}
-            className="inline-flex w-fit items-center gap-2 rounded-md border border-real-estate-primary/15 bg-white px-4 py-2 text-sm font-medium text-real-estate-primary transition hover:border-real-estate-secondary"
-          >
-            <span>Rendit</span>
-            {sortOrder === 1 ? (
-              <ImSortAlphaAsc />
-            ) : sortOrder === 2 ? (
-              <ImSortAlphaDesc />
-            ) : (
-              <MdSortByAlpha />
-            )}
-          </button>
+          <label className="flex items-center gap-2 text-sm text-real-estate-primary/70">
+            Rendit:
+            <select
+              value={filters.sort}
+              onChange={(e) => onChange({ sort: e.target.value })}
+              className="rounded-full border border-real-estate-primary/15 bg-white px-4 py-2 text-sm font-medium text-real-estate-primary outline-none focus:border-real-estate-secondary"
+            >
+              {SORTS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
-      {/* Property Grid */}
-      <div className="grid grid-cols-1 gap-y-6 gap-x-[34px] max-w-7xl mx-auto sm:grid-cols-2 lg:grid-cols-3">
-        {filteredProperties.length > 0 ? (
-          filteredProperties.map((property) => (
-            <PropertyCard
-              key={property.propertyId}
-              property={property as any}
-              onClick={() => handlePropertyClick(property)}
-            />
-          ))
-        ) : (
-          <div className="col-span-full text-center py-20">
-            <p className="text-muted-foreground text-lg">
-              Nuk u gjet asnjë pronë për filtrat e zgjedhur.
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 2xl:grid-cols-4">
+          {isLoading &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-xl border border-real-estate-primary/10 bg-white">
+                <div className="aspect-[4/3] animate-pulse bg-[#efe8d7]" />
+                <div className="space-y-3 p-5">
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-[#efe8d7]" />
+                  <div className="h-5 w-4/5 animate-pulse rounded bg-[#efe8d7]" />
+                  <div className="h-6 w-1/3 animate-pulse rounded bg-[#efe8d7]" />
+                </div>
+              </div>
+            ))}
+
+          {!isLoading &&
+            shown.map((property, index) => (
+              <PropertyCard key={property.propertyId} property={property} eager={index < 3} />
+            ))}
+
+          {!isLoading && isError && (
+            <div className="col-span-full rounded-xl border border-real-estate-primary/10 bg-white py-16 text-center">
+              <p className="text-lg text-real-estate-primary">Pronat nuk u ngarkuan.</p>
+              <button
+                onClick={() => refetch()}
+                className="mt-4 rounded-full bg-real-estate-primary px-5 py-2.5 text-sm font-semibold text-real-estate-secondary"
+              >
+                Provo përsëri
+              </button>
+            </div>
+          )}
+
+          {!isLoading && !isError && filtered.length === 0 && (
+            <div className="col-span-full rounded-xl border border-dashed border-real-estate-primary/20 bg-white py-16 text-center">
+              <p className="text-lg text-real-estate-primary">Nuk u gjet asnjë pronë për filtrat e zgjedhur.</p>
+              <button
+                onClick={() => onChange(null)}
+                className="mt-4 rounded-full bg-real-estate-primary px-5 py-2.5 text-sm font-semibold text-real-estate-secondary"
+              >
+                Pastro filtrat
+              </button>
+            </div>
+          )}
+        </div>
+
+        {filtered.length > visible && (
+          <div className="mt-10 flex flex-col items-center gap-3">
+            <p className="text-sm text-real-estate-primary/60">
+              Po shfaqen {shown.length} nga {filtered.length}
             </p>
+            <button
+              onClick={() => setVisible((v) => v + PAGE_SIZE)}
+              className="rounded-full bg-real-estate-primary px-7 py-3 font-text text-sm font-semibold uppercase tracking-[0.16em] text-real-estate-secondary transition hover:bg-real-estate-primary/90"
+            >
+              Shfaq më shumë
+            </button>
           </div>
         )}
       </div>
-      </section>
     </main>
   );
 };

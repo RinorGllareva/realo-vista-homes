@@ -21,9 +21,6 @@ export default {
       fontFamily: {
         title: ["Title", "serif"], // FrizQuadrataNo.2W01.ttf
         text: ["Text", "sans-serif"], // MBPictureHouseOneW01Regular.ttf
-        logo: ["Logo", "cursive"], // MIROLES400.ttf
-        filter: ["FilterProperty", "sans-serif"], // MadaniArabicVariable.ttf
-        quicksand: ["quickdsand", "sans-serif"], // Quicksand-Light.ttf
       },
       colors: {
         border: "hsl(var(--border))",

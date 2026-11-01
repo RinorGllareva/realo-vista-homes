@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Lock, User } from "lucide-react";
 import { AnimatedRealoLogo } from "@/components/RealoLoader";
+import { login } from "@/lib/auth";
 
 const LoginPage: React.FC = () => {
   const [credentials, setCredentials] = useState({
@@ -11,6 +12,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,14 +24,25 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
-    if (credentials.username === "admin" && credentials.password === "admin") {
-      sessionStorage.setItem("isAuthenticated", "true");
-      navigate("/dashboard");
-    } else {
-      setError("Invalid username or password. Try admin/admin.");
+    try {
+      await login(credentials.username.trim(), credentials.password);
+      const next = searchParams.get("next");
+      navigate(next && next.startsWith("/") ? next : "/dashboard", { replace: true });
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setError(
+        status === 401
+          ? "Invalid username or password."
+          : status === 429
+          ? "Too many attempts. Try again in 15 minutes."
+          : status === 503
+          ? "Admin login is not configured on the server yet."
+          : "Could not reach the server. Check your connection and try again."
+      );
+      setCredentials((c) => ({ ...c, password: "" }));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -71,6 +84,7 @@ const LoginPage: React.FC = () => {
                 value={credentials.username}
                 onChange={handleChange}
                 placeholder="Enter username"
+                autoComplete="username"
                 className="w-full border border-real-estate-secondary/20 bg-[#050705] py-3.5 pl-11 pr-4 text-[#f5f0e8] outline-none transition placeholder:text-[#f5f0e8]/30 focus:border-real-estate-secondary focus:ring-2 focus:ring-real-estate-secondary/15"
                 required
               />
@@ -90,6 +104,7 @@ const LoginPage: React.FC = () => {
                 value={credentials.password}
                 onChange={handleChange}
                 placeholder="Enter password"
+                autoComplete="current-password"
                 className="w-full border border-real-estate-secondary/20 bg-[#050705] py-3.5 pl-11 pr-4 text-[#f5f0e8] outline-none transition placeholder:text-[#f5f0e8]/30 focus:border-real-estate-secondary focus:ring-2 focus:ring-real-estate-secondary/15"
                 required
               />

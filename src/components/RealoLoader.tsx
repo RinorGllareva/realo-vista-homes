@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 const logoPathA =
@@ -39,34 +39,6 @@ export const AnimatedRealoLogo: React.FC<AnimatedRealoLogoProps> = ({
   </span>
 );
 
-export const GlobalRouteLoader: React.FC = () => {
-  const location = useLocation();
-  const previousPath = useRef<string | null>(null);
-  const [visible, setVisible] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.location.pathname !== "/";
-  });
-
-  useEffect(() => {
-    const isInitialPath = previousPath.current === null;
-    previousPath.current = location.pathname;
-    if (isInitialPath && location.pathname === "/") return;
-
-    setVisible(true);
-    const timeout = window.setTimeout(() => setVisible(false), 1950);
-    return () => window.clearTimeout(timeout);
-  }, [location.pathname]);
-
-  if (!visible) return null;
-
-  return (
-    <div className="realo-route-loader fixed inset-0 z-[9998] flex cursor-wait items-center justify-center bg-[#050705]/95">
-      <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(10,72,52,0.78)_0%,rgba(5,7,5,0.98)_58%,#050705_100%)]" />
-      <AnimatedRealoLogo sizeClassName="relative h-20 w-20" glow={false} />
-    </div>
-  );
-};
-
 export const HomeIntroOverlay: React.FC = () => {
   const location = useLocation();
   const [show, setShow] = useState(() => {
@@ -77,19 +49,25 @@ export const HomeIntroOverlay: React.FC = () => {
     );
   });
 
+  const finish = () => {
+    sessionStorage.setItem("realo-home-intro-complete", "true");
+    setShow(false);
+  };
+
   useEffect(() => {
     if (!show) return;
-    const timeout = window.setTimeout(() => {
-      sessionStorage.setItem("realo-home-intro-complete", "true");
-      setShow(false);
-    }, 2850);
+    const timeout = window.setTimeout(finish, 2850);
     return () => window.clearTimeout(timeout);
   }, [show]);
 
   if (!show || location.pathname !== "/") return null;
 
   return (
-    <div className="realo-home-intro fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[#050705]">
+    // Tap/click anywhere to skip the intro.
+    <div
+      onClick={finish}
+      className="realo-home-intro fixed inset-0 z-[9999] flex cursor-pointer items-center justify-center overflow-hidden bg-[#050705]"
+    >
       <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(10,72,52,0.86)_0%,rgba(5,7,5,0.97)_52%,#050705_100%)]" />
       <div className="realo-home-intro-logo relative">
         <AnimatedRealoLogo sizeClassName="h-28 w-28 sm:h-36 sm:w-36" cinematic glow={false} />

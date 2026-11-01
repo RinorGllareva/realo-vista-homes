@@ -5,14 +5,21 @@ type PriceFilterProps = {
   applyPriceFilter: (min: number | null, max: number | null) => void;
   className?: string;
   scrolled?: boolean;
+  value?: { min: string; max: string };
 };
 
-const PriceFilter: React.FC<PriceFilterProps> = ({ applyPriceFilter, className, scrolled }) => {
+const PriceFilter: React.FC<PriceFilterProps> = ({ applyPriceFilter, className, scrolled, value }) => {
   const [open, setOpen] = useState(false);
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [minPrice, setMinPrice] = useState(value?.min ?? "");
+  const [maxPrice, setMaxPrice] = useState(value?.max ?? "");
   const ref = useRef<HTMLDivElement | null>(null);
   const active = Boolean(minPrice || maxPrice);
+
+  // Stay in sync when filters come from the URL (back button, shared link, reset).
+  useEffect(() => {
+    setMinPrice(value?.min ?? "");
+    setMaxPrice(value?.max ?? "");
+  }, [value?.min, value?.max]);
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
@@ -49,7 +56,7 @@ const PriceFilter: React.FC<PriceFilterProps> = ({ applyPriceFilter, className, 
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-3 w-[min(92vw,380px)] rounded-lg border border-slate-200 bg-white p-3 shadow-2xl">
+        <div className="fixed inset-x-4 z-50 mt-3 sm:absolute sm:inset-x-auto sm:right-0 sm:w-[380px] rounded-lg border border-slate-200 bg-white p-3 shadow-2xl">
           <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
             <input
               type="number"
