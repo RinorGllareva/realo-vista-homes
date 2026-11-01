@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { useNavigate } from "react-router-dom";
-import { apiUrl, normalizeMediaUrl } from "@/lib/api";
+import { normalizeMediaUrl } from "@/lib/api";
+import { propertyPath, useProperties } from "@/lib/properties";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatPublicPrice } from "@/lib/price";
@@ -53,55 +54,32 @@ const getPropertyTypeName = (propertyType: string) => {
 };
 
 const PropertiesMap: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { data, isLoading: loading, isError } = useProperties();
+  const error = isError ? "Pronat nuk mund të ngarkohen." : null;
 
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const response = await fetch(apiUrl("api/Property/GetProperties"));
-        if (!response.ok) throw new Error("Failed to fetch properties");
-        const data = await response.json();
+  const properties = useMemo(
+    () =>
+      ((data ?? []) as unknown as Property[])
+        .filter(
+          (p) =>
+            p.latitude &&
+            p.longitude &&
+            !isNaN(Number(p.latitude)) &&
+            !isNaN(Number(p.longitude)) &&
+            (p.isForSale || p.isForRent),
+        )
+        .slice(0, 60),
+    [data],
+  );
 
-        // Filter properties with valid coordinates
-        const validProperties = data
-          .filter(
-            (p: Property) =>
-              p.latitude &&
-              p.longitude &&
-              !isNaN(Number(p.latitude)) &&
-              !isNaN(Number(p.longitude)) &&
-              (p.isForSale || p.isForRent),
-          )
-          .slice(0, 60);
-
-        setProperties(validProperties);
-      } catch (err) {
-        setError("Pronat nuk mund të ngarkohen.");
-        console.error("Error fetching properties:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProperties();
-  }, []);
-
-  const handlePropertyClick = (property: Property) => {
-    const slug = property.title
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^\w-]+/g, "");
-    navigate(`/properties/${slug}/${property.propertyId}`);
-  };
+  const handlePropertyClick = (property: Property) => navigate(propertyPath(property));
 
   const customIcon = createCustomIcon();
 
   if (loading) {
     return (
-      <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-12 md:py-16">
+      <section id="map" className="scroll-mt-20 border-y border-real-estate-secondary/20 bg-real-estate-primary py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
@@ -119,7 +97,7 @@ const PropertiesMap: React.FC = () => {
 
   if (error) {
     return (
-      <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-12 md:py-16">
+      <section id="map" className="scroll-mt-20 border-y border-real-estate-secondary/20 bg-real-estate-primary py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">
@@ -135,7 +113,7 @@ const PropertiesMap: React.FC = () => {
   }
 
   return (
-    <section className="border-y border-real-estate-secondary/20 bg-real-estate-primary py-16 md:py-20">
+    <section id="map" className="scroll-mt-20 border-y border-real-estate-secondary/20 bg-real-estate-primary py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="font-title text-3xl md:text-4xl text-real-estate-secondary mb-2">

@@ -5,14 +5,21 @@ type AreaFilterProps = {
   applyAreaFilter: (min: number | null, max: number | null) => void;
   className?: string;
   scrolled?: boolean;
+  value?: { min: string; max: string };
 };
 
-const AreaFilter: React.FC<AreaFilterProps> = ({ applyAreaFilter, className, scrolled }) => {
+const AreaFilter: React.FC<AreaFilterProps> = ({ applyAreaFilter, className, scrolled, value }) => {
   const [open, setOpen] = useState(false);
-  const [minArea, setMinArea] = useState("");
-  const [maxArea, setMaxArea] = useState("");
+  const [minArea, setMinArea] = useState(value?.min ?? "");
+  const [maxArea, setMaxArea] = useState(value?.max ?? "");
   const ref = useRef<HTMLDivElement | null>(null);
   const active = Boolean(minArea || maxArea);
+
+  // Stay in sync when filters come from the URL (back button, shared link, reset).
+  useEffect(() => {
+    setMinArea(value?.min ?? "");
+    setMaxArea(value?.max ?? "");
+  }, [value?.min, value?.max]);
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
@@ -49,7 +56,7 @@ const AreaFilter: React.FC<AreaFilterProps> = ({ applyAreaFilter, className, scr
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-3 w-[min(92vw,360px)] rounded-lg border border-slate-200 bg-white p-3 shadow-2xl">
+        <div className="fixed inset-x-4 z-50 mt-3 sm:absolute sm:inset-x-auto sm:right-0 sm:w-[360px] rounded-lg border border-slate-200 bg-white p-3 shadow-2xl">
           <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
             <input
               type="number"

@@ -27,6 +27,9 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import PropertyCard from "../components/PropertyCard";
+import FavoriteButton from "../components/FavoriteButton";
+import { RealoLoader } from "@/components/RealoLoader";
+import { firstImage, useProperties, type PropertySummary } from "@/lib/properties";
 import { PublicVirtualTour } from "@/components/PublicVirtualTour";
 import { Button } from "@/components/ui/button";
 import { apiUrl, normalizeMediaUrl } from "@/lib/api";
@@ -118,7 +121,6 @@ const normalizeImages = (value: unknown): ImgObj[] => {
   return url ? [{ imageUrl: url }] : [];
 };
 
-const normalizeProperties = (raw: unknown): Property[] => toArray(raw) as Property[];
 
 const pickOne = (raw: unknown): Property | null => {
   const arr = toArray(raw);
@@ -160,7 +162,8 @@ const PropertyDetailedPage = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const [property, setProperty] = useState<Property | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
+  const { data: properties = [] } = useProperties();
+  const [failed, setFailed] = useState(false);
   const [internalTour, setInternalTour] = useState<VirtualTour | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [activeMediaPanel, setActiveMediaPanel] = useState<"tour" | "floor">("tour");
@@ -171,13 +174,10 @@ const PropertyDetailedPage = () => {
   useEffect(() => {
     if (!id) return;
     const ac = new AbortController();
+    setFailed(false);
 
     Promise.all([
       axios.get(apiUrl(`api/Property/GetProperty/${id}`), {
-        headers: { Accept: "application/json" },
-        signal: ac.signal,
-      }),
-      axios.get(apiUrl("api/Property/GetProperties"), {
         headers: { Accept: "application/json" },
         signal: ac.signal,
       }),
@@ -194,8 +194,9 @@ const PropertyDetailedPage = () => {
         })
         .catch(() => ({ data: null })),
     ])
-      .then(([propertyRes, propertiesRes, mediaRes, tourRes]) => {
+      .then(([propertyRes, mediaRes, tourRes]) => {
         const current = pickOne(propertyRes.data);
+        if (!current) setFailed(true);
         if (current) {
           const directImages = normalizeImages((current as any).images);
           const media =
@@ -211,11 +212,11 @@ const PropertyDetailedPage = () => {
         }
         const tour = tourRes?.data as VirtualTour | null;
         setInternalTour(tour?.isPublished && tour.rooms?.length ? tour : null);
-        setProperties(normalizeProperties(propertiesRes.data));
       })
       .catch((error) => {
         if (error?.name !== "CanceledError" && error?.code !== "ERR_CANCELED") {
           console.error("Error fetching property data:", error);
+          setFailed(true);
         }
       });
 
@@ -260,10 +261,39 @@ const PropertyDetailedPage = () => {
       .slice(0, 4);
   }, [properties, property]);
 
-  if (!property) {
+  if (!property || String(property.propertyId) !== String(id)) {
+    // Show what we already know from the cached list while the full details load.
+    const summary = properties.find((p) => String(p.propertyId) === String(id));
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#06130f]">
-        <div className="h-9 w-9 animate-spin rounded-full border-4 border-real-estate-primary border-t-real-estate-secondary" />
+      <div className="min-h-screen bg-[#ebe1cf]">
+        <Header />
+        <section className="relative flex min-h-[74vh] items-end overflow-hidden bg-[#06130f] md:min-h-[82vh]">
+          {summary && (
+            <img src={firstImage(summary.images)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-[#06130f]/60 to-black/25" />
+          <div className="relative mx-auto w-full max-w-7xl px-5 pb-10 pt-28 md:pb-14">
+            {failed ? (
+              <>
+                <h1 className="font-title text-4xl text-white md:text-5xl">Prona nuk u gjet</h1>
+                <p className="mt-3 text-white/70">Mund të jetë hequr ose linku nuk është i saktë.</p>
+                <button
+                  onClick={() => navigate("/Property")}
+                  className="mt-6 rounded-full bg-real-estate-secondary px-6 py-3 font-text text-xs font-semibold uppercase tracking-[0.16em] text-real-estate-primary"
+                >
+                  Shfleto pronat
+                </button>
+              </>
+            ) : (
+              <>
+                <h1 className="max-w-5xl font-title text-[clamp(2.2rem,6.2vw,5.8rem)] leading-[0.95] text-white">
+                  {summary?.title ?? <span className="inline-block h-14 w-2/3 animate-pulse rounded bg-white/10" />}
+                </h1>
+                <RealoLoader size="sm" label="Duke ngarkuar detajet…" className="mt-6 !flex-row !gap-3" />
+              </>
+            )}
+          </div>
+        </section>
       </div>
     );
   }
@@ -444,6 +474,7 @@ const PropertyDetailedPage = () => {
             >
               <Share2 size={17} /> Shpërndaje
             </button>
+            <FavoriteButton propertyId={property.propertyId} title={property.title} variant="outline" />
           </div>
           {heroFacts.length > 0 && (
             <div className="mt-6 flex flex-nowrap gap-2 overflow-x-auto border-y border-real-estate-secondary/25 py-4 font-text text-[11px] uppercase tracking-[0.12em] text-white/80 sm:flex-wrap sm:text-xs md:grid md:grid-cols-5 md:gap-3 md:overflow-visible md:text-sm md:tracking-[0.18em]">
@@ -882,14 +913,10 @@ const PropertyDetailedPage = () => {
       {similarProperties.length > 0 && (
         <section className="bg-[#ebe1cf] px-5 py-16">
           <div className="mx-auto max-w-7xl">
-          <p className="font-text text-sm uppercase tracking-[0.3em] text-real-estate-secondary">Prona të ngjashme</p>
-          <div className="mt-8 grid gap-6 md:grid-cols-4">
+          <h2 className="font-title text-3xl text-real-estate-primary md:text-4xl">Prona të ngjashme</h2>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {similarProperties.map((item) => (
-              <PropertyCard
-                key={String(item.propertyId)}
-                property={item as any}
-                onClick={() => navigate(`/properties/${encodeURIComponent(item.title)}/${item.propertyId}`)}
-              />
+              <PropertyCard key={String(item.propertyId)} property={item as PropertySummary} />
             ))}
           </div>
           </div>

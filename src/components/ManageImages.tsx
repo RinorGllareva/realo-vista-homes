@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { RealoLoader } from "@/components/RealoLoader";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -200,7 +201,7 @@ const SortableImage: React.FC<SortableImageProps> = ({
         <div
           {...attributes}
           {...listeners}
-          className="absolute left-2 top-2 cursor-grab border border-real-estate-secondary/35 bg-[#050705]/85 p-1.5 text-real-estate-secondary opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100"
+          className="absolute left-2 top-2 cursor-grab border border-real-estate-secondary/35 bg-[#050705]/85 p-1.5 text-real-estate-secondary transition-opacity active:cursor-grabbing [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           aria-label="Drag to reorder"
         >
           <GripVertical className="h-4 w-4" />
@@ -208,7 +209,7 @@ const SortableImage: React.FC<SortableImageProps> = ({
         <Button
           size="icon"
           variant="destructive"
-          className="absolute right-2 top-2 h-8 w-8 rounded-none border border-red-500/50 bg-red-950/70 text-red-100 opacity-0 transition-opacity hover:bg-red-700 group-hover:opacity-100"
+          className="absolute right-2 top-2 h-8 w-8 rounded-none border border-red-500/50 bg-red-950/70 text-red-100 transition-opacity hover:bg-red-700 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           onClick={() => onDelete(image.imageId)}
           aria-label="Delete image"
         >
@@ -216,7 +217,7 @@ const SortableImage: React.FC<SortableImageProps> = ({
         </Button>
         <Button
           size="sm"
-          className="absolute bottom-2 right-2 h-8 rounded-none border border-real-estate-secondary/60 bg-[#050705]/85 px-3 font-text text-[10px] font-bold uppercase tracking-[0.16em] text-real-estate-secondary opacity-0 transition-opacity hover:bg-real-estate-secondary hover:text-real-estate-primary group-hover:opacity-100"
+          className="absolute bottom-2 right-2 h-8 rounded-none border border-real-estate-secondary/60 bg-[#050705]/85 px-3 font-text text-[10px] font-bold uppercase tracking-[0.16em] text-real-estate-secondary transition-opacity hover:bg-real-estate-secondary hover:text-real-estate-primary [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           onClick={() => onUpscale(image.imageId)}
           disabled={upscaling}
           aria-label="Upscale image quality"
@@ -492,17 +493,31 @@ const ManageImages: React.FC = () => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    setImages((items) => {
-      const oldIndex = items.findIndex(
-        (it) => String(it.imageId) === String(active.id)
-      );
-      const newIndex = items.findIndex(
-        (it) => String(it.imageId) === String(over.id)
-      );
-      return arrayMove(items, oldIndex, newIndex);
-    });
+    const previous = images;
+    const oldIndex = previous.findIndex((it) => String(it.imageId) === String(active.id));
+    const newIndex = previous.findIndex((it) => String(it.imageId) === String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(previous, oldIndex, newIndex);
+    setImages(reordered);
 
-    toast({ title: "Success", description: "Images reordered successfully!" });
+    // Save the new order (the first photo is the cover on the website). The API removes
+    // any photo missing from this list, so always send all of them.
+    axios
+      .put(
+        apiUrl(`/api/Property/UpdatePropertyImages/${id}`),
+        reordered.map((image) => ({ imageId: image.imageId })),
+        { headers: { "Content-Type": "application/json" } }
+      )
+      .then(() => toast({ title: "Order saved", description: "The first photo is now the cover." }))
+      .catch((error) => {
+        console.error("Error saving image order:", error);
+        setImages(previous);
+        toast({
+          title: "Error",
+          description: apiErrorMessage(error, "Could not save the new order."),
+          variant: "destructive",
+        });
+      });
   };
 
   const field = adminInput;
@@ -796,7 +811,7 @@ const ManageImages: React.FC = () => {
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-real-estate-secondary border-t-transparent" />
+                <RealoLoader size="md" label="Loading photos…" />
               </div>
             ) : images.length === 0 ? (
               <div className="text-center py-12">

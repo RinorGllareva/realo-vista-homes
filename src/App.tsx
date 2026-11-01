@@ -1,84 +1,59 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { GlobalRouteLoader, HomeIntroOverlay } from "@/components/RealoLoader";
+import { FullPageLoader, HomeIntroOverlay } from "@/components/RealoLoader";
+import ScrollManager from "@/components/ScrollManager";
 import HomePage from "./pages/HomePage";
 import PropertyPage from "./pages/PropertyPage";
-import PropertyDetailedPage from "./pages/PropertyDetailedPage";
-import ContactPage from "./pages/ContactPage";
-import NotFound from "./pages/NotFound";
-import LogInPage from "../src/pages/LogInPage";
-import Dashboard from "../src/pages/Dashboard";
-import AddProperty from "../src/components/AddProperty";
-import EditProperty from "../src/components/EditProperty";
-import ManageImages from "../src/components/ManageImages";
-import ManageTour from "../src/components/ManageTour";
 import PrivateRoute from "./PrivateRoute";
 
-const queryClient = new QueryClient();
+// Public pages that are not the landing page, and the whole admin area, load on demand so
+// visitors don't download charts, the 360° viewer and admin forms up front.
+const PropertyDetailedPage = lazy(() => import("./pages/PropertyDetailedPage"));
+const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const LogInPage = lazy(() => import("./pages/LogInPage"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const AddProperty = lazy(() => import("./components/AddProperty"));
+const EditProperty = lazy(() => import("./components/EditProperty"));
+const ManageImages = lazy(() => import("./components/ManageImages"));
+const ManageTour = lazy(() => import("./components/ManageTour"));
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
+});
+
+const PageFallback = () => <FullPageLoader />;
 
 const AppRoutes = () => (
   <>
     <HomeIntroOverlay />
-    <GlobalRouteLoader />
-    <Routes>
-      {/* Public */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/Property" element={<PropertyPage />} />
-      <Route
-        path="/properties/:title/:id"
-        element={<PropertyDetailedPage />}
-      />
-      <Route path="/contact-us" element={<ContactPage />} />
-      <Route path="/login" element={<LogInPage />} />
+    <ScrollManager />
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/Property" element={<PropertyPage />} />
+        <Route path="/properties/:title/:id" element={<PropertyDetailedPage />} />
+        <Route path="/te-preferuarat" element={<FavoritesPage />} />
+        <Route path="/contact-us" element={<ContactPage />} />
+        <Route path="/login" element={<LogInPage />} />
 
-      {/* Private */}
-      <Route
-        path="/dashboard"
-        element={
-          <PrivateRoute>
-            <Dashboard />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/add-property"
-        element={
-          <PrivateRoute>
-            <AddProperty />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/edit-property/:id"
-        element={
-          <PrivateRoute>
-            <EditProperty />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/manage-images/:id"
-        element={
-          <PrivateRoute>
-            <ManageImages />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/manage-tour/:id"
-        element={
-          <PrivateRoute>
-            <ManageTour />
-          </PrivateRoute>
-        }
-      />
+        {/* Private */}
+        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/add-property" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
+        <Route path="/edit-property/:id" element={<PrivateRoute><EditProperty /></PrivateRoute>} />
+        <Route path="/manage-images/:id" element={<PrivateRoute><ManageImages /></PrivateRoute>} />
+        <Route path="/manage-tour/:id" element={<PrivateRoute><ManageTour /></PrivateRoute>} />
 
-      {/* Catch-all */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {/* Catch-all */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   </>
 );
 

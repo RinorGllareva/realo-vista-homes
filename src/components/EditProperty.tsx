@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { RealoLoader } from "@/components/RealoLoader";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -185,7 +186,7 @@ const EditProperty = () => {
   if (initialLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#050705]">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-real-estate-secondary border-t-transparent" />
+        <RealoLoader size="md" label="Loading property…" />
       </div>
     );
   }

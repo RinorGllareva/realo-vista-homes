@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { RealoLoader } from "@/components/RealoLoader";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,8 @@ import {
   YAxis,
 } from "recharts";
 import { apiUrl, normalizeMediaUrl } from "@/lib/api";
+import { formatPublicPrice } from "@/lib/price";
+import { isLoggedIn, logout } from "@/lib/auth";
 import logoImage from "../assets/LogoMainSection.png";
 
 interface Property {
@@ -91,21 +94,8 @@ function toArray<T = unknown>(v: any, label?: string): T[] {
   return [];
 }
 
-const toNumber = (value: number | string | undefined) => {
-  if (typeof value === "number") return value;
-  if (!value) return NaN;
-  return Number(String(value).replace(/[^\d.]/g, ""));
-};
-
-const formatPrice = (price: number | string) => {
-  const n = toNumber(price);
-  if (!Number.isFinite(n)) return "-";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 0,
-  }).format(n);
-};
+// Same formatter as the public site, so "1.300/m2" shows as €1,300/m² rather than €13,002.
+const formatPrice = (price: number | string) => formatPublicPrice(price);
 
 const hasAnyTour = (property: Pick<Property, "virtualTourUrl" | "hasInternalVirtualTour" | "hasPublishedVirtualTour">) =>
   Boolean(property.hasInternalVirtualTour || property.hasPublishedVirtualTour || property.virtualTourUrl);
@@ -121,10 +111,14 @@ const Dashboard: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (sessionStorage.getItem("isAuthenticated") !== "true") {
+    if (!isLoggedIn()) {
       navigate("/login");
       return;
     }
+
+    // Confirm the session with the API; a 401 (expired, or password changed) sends the
+    // admin back to the login page via the axios interceptor.
+    axios.get(apiUrl("api/Auth/Me")).catch(() => undefined);
 
     const ac = new AbortController();
 
@@ -161,6 +155,46 @@ const Dashboard: React.FC = () => {
   }, [navigate, toast]);
 
   const list = toArray<Property>(properties);
+
+  // Table tools: 300+ rows need search, quick filters and paging to stay usable.
+  const PAGE_SIZE = 20;
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [mediaFilter, setMediaFilter] = useState("");
+  const [page, setPage] = useState(1);
+
+  const filteredList = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return list
+      .filter(
+        (p) =>
+          !q ||
+          String(p.propertyId).includes(q) ||
+          (p.title ?? "").toLowerCase().includes(q) ||
+          (p.city ?? "").toLowerCase().includes(q) ||
+          (p.address ?? "").toLowerCase().includes(q)
+      )
+      .filter((p) => !typeFilter || (p.propertyType ?? "").toLowerCase() === typeFilter)
+      .filter((p) => !statusFilter || (statusFilter === "sale" ? p.isForSale : !p.isForSale))
+      .filter((p) => {
+        if (mediaFilter === "no-photos") return !p.images?.length;
+        if (mediaFilter === "no-tour") return !hasAnyTour(p);
+        if (mediaFilter === "no-plan") return !p.floorPlanUrl;
+        return true;
+      })
+      .sort((a, b) => Number(b.propertyId) - Number(a.propertyId));
+  }, [list, query, typeFilter, statusFilter, mediaFilter]);
+
+  useEffect(() => setPage(1), [query, typeFilter, statusFilter, mediaFilter]);
+  const pageCount = Math.max(1, Math.ceil(filteredList.length / PAGE_SIZE));
+  const pageRows = filteredList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const typeOptions = useMemo(
+    () => Array.from(new Set(list.map((p) => (p.propertyType ?? "").toLowerCase()).filter(Boolean))).sort(),
+    [list]
+  );
+  const toolbarField =
+    "h-11 rounded-none border border-real-estate-secondary/20 bg-[#050705] px-3 text-sm text-[#f5f0e8] outline-none focus:border-real-estate-secondary";
 
   const analytics = useMemo(() => {
     const typeCounts = list.reduce<Record<string, number>>((acc, property) => {
@@ -246,7 +280,7 @@ const Dashboard: React.FC = () => {
     navigate(`/properties/${encodeURIComponent(p.title)}/${p.propertyId}`);
 
   const handleLogout = () => {
-    sessionStorage.removeItem("isAuthenticated");
+    logout();
     navigate("/login");
   };
 
@@ -419,40 +453,72 @@ const Dashboard: React.FC = () => {
               </h2>
             </div>
             <p className="text-sm text-[#f5f0e8]/55">
-              {list.length} properties loaded from Realo API
+              {filteredList.length === list.length
+                ? `${list.length} properties`
+                : `${filteredList.length} of ${list.length} properties`}
             </p>
+          </div>
+
+          <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search title, city, address or ID"
+              aria-label="Search properties"
+              className={`${toolbarField} sm:col-span-2 lg:col-span-1`}
+            />
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Type" className={toolbarField}>
+              <option value="">All types</option>
+              {typeOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t[0].toUpperCase() + t.slice(1)}
+                </option>
+              ))}
+            </select>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Status" className={toolbarField}>
+              <option value="">Sale and rent</option>
+              <option value="sale">For sale</option>
+              <option value="rent">For rent</option>
+            </select>
+            <select value={mediaFilter} onChange={(e) => setMediaFilter(e.target.value)} aria-label="Media" className={toolbarField}>
+              <option value="">All media</option>
+              <option value="no-photos">Missing photos</option>
+              <option value="no-tour">Missing 360 tour</option>
+              <option value="no-plan">Missing floor plan</option>
+            </select>
           </div>
 
           <div className="border border-real-estate-secondary/15 bg-[#0d1510]">
             {loading ? (
               <div className="flex min-h-72 items-center justify-center">
-                <div className="h-10 w-10 animate-spin rounded-full border-2 border-real-estate-secondary border-t-transparent" />
+                <RealoLoader size="md" label="Loading properties…" />
               </div>
-            ) : list.length === 0 ? (
+            ) : filteredList.length === 0 ? (
               <div className="flex min-h-72 flex-col items-center justify-center text-center">
                 <Building2 className="mb-4 h-12 w-12 text-real-estate-secondary/60" />
                 <p className="font-title text-3xl text-[#f5f0e8]">
                   No properties found
                 </p>
                 <p className="mt-2 text-sm text-[#f5f0e8]/55">
-                  Add a property to start building the Realo portfolio.
+                  {list.length ? "Try a different search or filter." : "Add a property to start building the Realo portfolio."}
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1080px] text-left">
+                <table className="w-full text-left lg:min-w-[1080px]">
                   <thead className="bg-[#050705] font-text text-xs uppercase tracking-[0.22em] text-real-estate-secondary">
                     <tr>
                       <th className="p-4 font-normal">Property</th>
-                      <th className="p-4 font-normal">Type</th>
-                      <th className="p-4 font-normal">Price</th>
-                      <th className="p-4 font-normal">Status</th>
-                      <th className="p-4 font-normal">Media</th>
+                      <th className="hidden p-4 font-normal lg:table-cell">Type</th>
+                      <th className="hidden p-4 font-normal sm:table-cell">Price</th>
+                      <th className="hidden p-4 font-normal md:table-cell">Status</th>
+                      <th className="hidden p-4 font-normal xl:table-cell">Media</th>
                       <th className="p-4 text-right font-normal">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {list.map((property) => (
+                    {pageRows.map((property) => (
                       <tr
                         key={property.propertyId}
                         className="border-t border-real-estate-secondary/10 text-[#f5f0e8]/80 transition hover:bg-real-estate-primary/20"
@@ -464,6 +530,8 @@ const Dashboard: React.FC = () => {
                                 <img
                                   src={normalizeMediaUrl(property.images[0].imageUrl)}
                                   alt=""
+                                  loading="lazy"
+                                  decoding="async"
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
@@ -471,9 +539,15 @@ const Dashboard: React.FC = () => {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <h3 className="line-clamp-1 font-title text-xl text-[#f5f0e8]">
+                              <h3 className="line-clamp-2 font-title text-lg text-[#f5f0e8] sm:line-clamp-1 sm:text-xl">
                                 {property.title || "Untitled property"}
                               </h3>
+                              <p className="mt-1 text-xs text-[#f5f0e8]/40">
+                                #{property.propertyId}
+                                <span className="ml-2 font-title text-base text-real-estate-secondary sm:hidden">
+                                  {formatPrice(property.price)}
+                                </span>
+                              </p>
                               <p className="mt-1 flex items-center gap-1 text-sm text-[#f5f0e8]/50">
                                 <MapPin className="h-3.5 w-3.5 text-real-estate-secondary" />
                                 {property.city || property.address || "No location"}
@@ -501,11 +575,11 @@ const Dashboard: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-sm">{property.propertyType || "Property"}</td>
-                        <td className="p-4 font-title text-2xl text-real-estate-secondary">
+                        <td className="hidden p-4 text-sm lg:table-cell">{property.propertyType || "Property"}</td>
+                        <td className="hidden whitespace-nowrap p-4 font-title text-2xl text-real-estate-secondary sm:table-cell">
                           {formatPrice(property.price)}
                         </td>
-                        <td className="p-4">
+                        <td className="hidden p-4 md:table-cell">
                           <div className="flex flex-wrap gap-2">
                             {property.isForSale ? (
                               <span className="border border-real-estate-secondary/35 bg-real-estate-secondary px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-real-estate-primary">
@@ -524,7 +598,7 @@ const Dashboard: React.FC = () => {
                             ) : null}
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="hidden p-4 xl:table-cell">
                           <div className="flex flex-wrap gap-2 text-xs">
                             <span className="border border-real-estate-secondary/20 px-2.5 py-1 text-[#f5f0e8]/65">
                               Photos {property.images?.length ?? 0}
@@ -561,8 +635,8 @@ const Dashboard: React.FC = () => {
                               onClick={() => handleEditProperty(property.propertyId)}
                               className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
                             >
-                              <Edit className="mr-2 h-3.5 w-3.5" />
-                              Edit
+                              <Edit className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="sr-only sm:not-sr-only">Edit</span>
                             </Button>
                             <Button
                               size="sm"
@@ -570,8 +644,8 @@ const Dashboard: React.FC = () => {
                               onClick={() => handleManageImages(property.propertyId)}
                               className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
                             >
-                              <Images className="mr-2 h-3.5 w-3.5" />
-                              Media
+                              <Images className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="sr-only sm:not-sr-only">Media</span>
                             </Button>
                             <Button
                               size="sm"
@@ -579,8 +653,8 @@ const Dashboard: React.FC = () => {
                               onClick={() => handleManageTour(property.propertyId)}
                               className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
                             >
-                              <Video className="mr-2 h-3.5 w-3.5" />
-                              Tour
+                              <Video className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="sr-only sm:not-sr-only">Tour</span>
                             </Button>
                             <Button
                               size="sm"
@@ -588,16 +662,16 @@ const Dashboard: React.FC = () => {
                               onClick={() => handlePreviewProperty(property)}
                               className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
                             >
-                              <Eye className="mr-2 h-3.5 w-3.5" />
-                              Preview
+                              <Eye className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="sr-only sm:not-sr-only">Preview</span>
                             </Button>
                             <Button
                               size="sm"
                               onClick={() => handleDeleteProperty(property.propertyId)}
                               className="border border-red-500/50 bg-red-950/40 text-red-200 hover:bg-red-700 hover:text-white"
                             >
-                              <Trash2 className="mr-2 h-3.5 w-3.5" />
-                              Delete
+                              <Trash2 className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="sr-only sm:not-sr-only">Delete</span>
                             </Button>
                           </div>
                         </td>
@@ -605,6 +679,21 @@ const Dashboard: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                {pageCount > 1 && (
+                  <div className="flex items-center justify-between gap-3 border-t border-real-estate-secondary/10 p-4 text-sm text-[#f5f0e8]/60">
+                    <span>
+                      Page {page} of {pageCount}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary">
+                        Previous
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)} className="border-real-estate-secondary/35 bg-transparent text-real-estate-secondary">
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

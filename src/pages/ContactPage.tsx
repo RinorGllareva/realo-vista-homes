@@ -10,10 +10,31 @@ const ContactPage = () => {
   const [taps, setTaps] = useState(0);
   const resetTimer = useRef<number | null>(null);
 
+  // There is no mail backend yet, so the request is handed to WhatsApp (or email) with
+  // everything pre-filled instead of pretending it was sent.
+  const composeMessage = (form: HTMLFormElement) => {
+    const data = new FormData(form);
+    return [
+      "Përshëndetje Realo,",
+      String(data.get("description") || "").trim(),
+      "",
+      `Emri: ${data.get("name")}`,
+      `Telefoni: ${data.get("phone")}`,
+      `Email: ${data.get("email")}`,
+    ].join("\n");
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    event.currentTarget.reset();
-    alert("Faleminderit që kontaktuat Realo. Do t'ju përgjigjemi së shpejti.");
+    const text = encodeURIComponent(composeMessage(event.currentTarget));
+    window.open(`https://wa.me/38348282262?text=${text}`, "_blank", "noopener");
+  };
+
+  const sendByEmail = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const form = event.currentTarget.form;
+    if (!form || !form.reportValidity()) return;
+    const body = encodeURIComponent(composeMessage(form));
+    window.location.href = `mailto:realorealestate11@gmail.com?subject=${encodeURIComponent("Kërkesë nga faqja Realo")}&body=${body}`;
   };
 
   const handleSecretTap = () => {
@@ -49,7 +70,7 @@ const ContactPage = () => {
         <title>Na Kontaktoni | Realo Real Estate</title>
         <meta
           name="description"
-          content="Kontaktoni Realo Real Estate per shtepi, banesa dhe prona ne Prishtine. Telefoni: +383-48-262-282."
+          content="Kontaktoni Realo Real Estate per shtepi, banesa dhe prona ne Prishtine. Telefoni: +383 48 282 262."
         />
         <meta
           name="keywords"
@@ -107,27 +128,36 @@ const ContactPage = () => {
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-real-estate-primary">
                   Emri
-                  <input name="name" required className={field} />
+                  <input name="name" autoComplete="name" required className={field} />
                 </label>
                 <label className="grid gap-2 text-sm font-medium text-real-estate-primary">
                   Telefoni
-                  <input name="phone" type="tel" required className={field} />
+                  <input name="phone" type="tel" autoComplete="tel" required className={field} />
                 </label>
               </div>
               <label className="grid gap-2 text-sm font-medium text-real-estate-primary">
                 Email
-                <input name="email" type="email" required className={field} />
+                <input name="email" type="email" autoComplete="email" required className={field} />
               </label>
               <label className="grid gap-2 text-sm font-medium text-real-estate-primary">
                 Si mund t&apos;ju ndihmojmë?
                 <textarea name="description" rows={6} className={`${field} resize-y`} />
               </label>
-              <button
-                type="submit"
-                className="rounded-md bg-real-estate-primary px-6 py-3 font-text text-sm font-semibold uppercase tracking-[0.16em] text-real-estate-secondary transition hover:bg-real-estate-primary/90"
-              >
-                Dërgo kërkesën
-              </button>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="submit"
+                  className="rounded-md bg-real-estate-primary px-6 py-3.5 font-text text-sm font-semibold uppercase tracking-[0.16em] text-real-estate-secondary transition hover:bg-real-estate-primary/90"
+                >
+                  Dërgo në WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={sendByEmail}
+                  className="rounded-md border border-real-estate-primary/20 px-6 py-3.5 font-text text-sm font-semibold uppercase tracking-[0.16em] text-real-estate-primary transition hover:border-real-estate-secondary"
+                >
+                  Dërgo me email
+                </button>
+              </div>
             </form>
           </div>
         </section>
