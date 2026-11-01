@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronDown, Search } from "lucide-react";
-import { PROPERTY_TYPES, useProperties } from "@/lib/properties";
-import { parsePriceNumber } from "@/lib/price";
+import { PROPERTY_TYPES } from "@/lib/properties";
 
 type Deal = "sale" | "rent";
 
@@ -19,7 +18,6 @@ const formatBudget = (n: number) =>
 
 const MainSection: React.FC = () => {
   const navigate = useNavigate();
-  const { data: properties = [] } = useProperties();
   const [deal, setDeal] = useState<Deal>("sale");
   const [propertyType, setPropertyType] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -29,19 +27,6 @@ const MainSection: React.FC = () => {
     setDeal(next);
     setMaxPrice(""); // sale and rent budgets are not comparable
   };
-
-  // Live count so the button says exactly how many results the search will show.
-  const matches = useMemo(() => {
-    const max = Number(maxPrice);
-    const beds = parseInt(bedrooms, 10);
-    return properties.filter(
-      (p) =>
-        p.isForSale === (deal === "sale") &&
-        (!propertyType || p.propertyType?.toLowerCase() === propertyType.toLowerCase()) &&
-        (!maxPrice || parsePriceNumber(p.price) <= max) &&
-        (!bedrooms || (bedrooms.endsWith("+") ? (p.bedrooms ?? 0) >= beds : p.bedrooms === beds))
-    ).length;
-  }, [properties, deal, propertyType, maxPrice, bedrooms]);
 
   const search = (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -167,7 +152,7 @@ const MainSection: React.FC = () => {
               className="col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-real-estate-secondary px-6 text-[15px] font-bold text-real-estate-primary transition hover:bg-real-estate-primary hover:text-real-estate-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-real-estate-primary focus-visible:ring-offset-2 md:col-span-1 md:min-w-[190px]"
             >
               <Search className="h-5 w-5" />
-              {properties.length ? `Shiko ${matches} prona` : "Kërko"}
+              Kërko
             </button>
           </div>
         </form>
