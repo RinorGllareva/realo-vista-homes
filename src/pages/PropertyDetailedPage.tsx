@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
@@ -16,6 +16,7 @@ import {
   FileText,
   Home,
   MapPin,
+  Navigation,
   Maximize2,
   Play,
   Ruler,
@@ -28,6 +29,8 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import PropertyCard from "../components/PropertyCard";
 import FavoriteButton from "../components/FavoriteButton";
+import PropertyGallery from "../components/property/PropertyGallery";
+import PropertyVisitCard from "../components/property/PropertyVisitCard";
 import { RealoLoader } from "@/components/RealoLoader";
 import { firstImage, useProperties, type PropertySummary } from "@/lib/properties";
 import { PublicVirtualTour } from "@/components/PublicVirtualTour";
@@ -35,7 +38,6 @@ import { Button } from "@/components/ui/button";
 import { apiUrl, normalizeMediaUrl } from "@/lib/api";
 import { formatPublicPrice } from "@/lib/price";
 import type { VirtualTour } from "@/types/virtualTour";
-import logoImage from "../assets/LogoMainSection.png";
 import { useToast } from "@/hooks/use-toast";
 
 type ImgObj = { imageUrl: string };
@@ -170,6 +172,8 @@ const PropertyDetailedPage = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImageIndex, setLightboxImageIndex] = useState(0);
   const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const touchStartX = useRef(0);
 
   useEffect(() => {
     if (!id) return;
@@ -238,6 +242,8 @@ const PropertyDetailedPage = () => {
     document.body.style.overflow = "hidden";
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setLightboxOpen(false);
+      if (event.key === "ArrowRight") document.getElementById("lightbox-next")?.click();
+      if (event.key === "ArrowLeft") document.getElementById("lightbox-prev")?.click();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
@@ -353,15 +359,29 @@ const PropertyDetailedPage = () => {
     property.city ? `Qyteti: ${property.city}` : null,
   ].filter(Boolean);
 
+  const longDescription = (property.description?.trim().length ?? 0) > 600;
+  const yesNo = (value: unknown) => (value === true || String(value).toLowerCase() === "true" ? "Po" : "Jo");
+  const infoRows = [
+    ["Lloji", property.propertyType ? translateType(property.propertyType) : ""],
+    ["Statusi", property.isForSale ? "Në shitje" : "Me qira"],
+    ["Qyteti", property.city],
+    ["Adresa", property.address],
+    ["Mobilimi", property.furniture && property.furniture !== "N/A" ? property.furniture : ""],
+    ["Dokument pronësie", property.hasOwnershipDocument !== undefined ? yesNo(property.hasOwnershipDocument) : ""],
+    ["ID e pronës", propertyId],
+  ].filter(([, value]) => hasText(value as string)) as Array<[string, string]>;
+  const mapsQuery = hasCoordinates
+    ? `${property.latitude},${property.longitude}`
+    : encodeURIComponent([property.address, property.city, "Kosovo"].filter(hasText).join(", "));
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}`;
+
   const openGalleryImage = (index: number) => {
     setActiveImage(index);
     setLightboxImageIndex(index);
     setLightboxZoom(1);
     setLightboxOpen(true);
   };
-  const nextImage = () => setActiveImage((index) => (index + 1) % galleryImages.length);
-  const previousImage = () =>
-    setActiveImage((index) => (index - 1 + galleryImages.length) % galleryImages.length);
   const nextLightboxImage = () => {
     setLightboxZoom(1);
     setLightboxImageIndex((index) => (index + 1) % galleryImages.length);
@@ -405,7 +425,7 @@ const PropertyDetailedPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#ebe1cf] text-real-estate-primary">
+    <div className="min-h-screen bg-[#ebe1cf] pb-[76px] text-real-estate-primary lg:pb-0">
       <Helmet>
         <title>{`${property.title}, ${property.city} | Realo Real Estate`}</title>
         <meta
@@ -489,75 +509,12 @@ const PropertyDetailedPage = () => {
         </div>
       </section>
 
-      <section className="bg-[#ebe1cf] px-5 py-16">
-        <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <p className="font-text text-sm uppercase tracking-[0.28em] text-real-estate-secondary">Galeria</p>
-            <h2 className="mt-2 font-title text-4xl text-real-estate-primary md:text-5xl">Fotot dhe turi virtual</h2>
-          </div>
-          <div className="hidden items-center gap-3 md:flex">
-            {hasVirtualTour && (
-              <a href="#virtual-tour" className="inline-flex items-center gap-2 border border-real-estate-secondary px-4 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-secondary">
-                <Compass size={17} /> Hap turin 360°
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={handleShareProperty}
-              className="inline-flex items-center gap-2 border border-real-estate-secondary px-4 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-secondary transition hover:bg-real-estate-secondary hover:text-real-estate-primary"
-            >
-              <Share2 size={17} /> Shpërndaje
-            </button>
-          </div>
-        </div>
-        <div className="relative h-[300px] overflow-hidden rounded-md border border-real-estate-primary/15 bg-[#f5efe1] shadow-xl sm:h-[420px] md:h-[680px]">
-          <button
-            type="button"
-            onClick={() => openGalleryImage(activeImage)}
-            className="h-full w-full cursor-zoom-in"
-            aria-label="Open image fullscreen"
-          >
-            <img loading="lazy" src={heroImage} alt={`${property.title} gallery`} className="h-full w-full object-cover" />
-          </button>
-          <button
-            type="button"
-            onClick={() => openGalleryImage(activeImage)}
-            className="absolute right-4 top-4 inline-flex items-center gap-2 bg-black/65 px-3 py-2 font-text text-xs uppercase tracking-[0.16em] text-real-estate-secondary"
-          >
-            <Maximize2 className="h-4 w-4" /> Fullscreen
-          </button>
-          {galleryImages.length > 1 && (
-            <>
-              <button onClick={previousImage} className="absolute left-4 top-1/2 bg-black/60 p-3 text-real-estate-secondary">
-                <ArrowLeft />
-              </button>
-              <button onClick={nextImage} className="absolute right-4 top-1/2 bg-black/60 p-3 text-real-estate-secondary">
-                <ArrowRight />
-              </button>
-            </>
-          )}
-        </div>
-        <div className="realo-scrollbar mt-4 flex gap-3 overflow-x-auto pb-2">
-          {galleryImages.map((img, index) => (
-            <button
-              key={`${img.imageUrl}-${index}`}
-              onClick={() => openGalleryImage(index)}
-              className={`h-20 w-28 shrink-0 overflow-hidden border bg-white sm:h-24 sm:w-36 ${
-                index === activeImage ? "border-real-estate-secondary" : "border-real-estate-secondary/20"
-              }`}
-            >
-              <img loading="lazy" src={img.imageUrl} alt="" className="h-full w-full object-cover" />
-            </button>
-          ))}
-          {hasVirtualTour && (
-            <a href="#virtual-tour" className="grid h-24 w-40 shrink-0 place-items-center border border-real-estate-secondary bg-real-estate-secondary/10 text-center font-text text-sm uppercase tracking-[0.18em] text-real-estate-secondary">
-              <span><Play className="mx-auto mb-1" size={20} />Tur 360°</span>
-            </a>
-          )}
-        </div>
-        </div>
-      </section>
+      <PropertyGallery
+        images={galleryImages}
+        title={property.title}
+        hasVirtualTour={hasVirtualTour}
+        onOpen={openGalleryImage}
+      />
 
       {(hasVirtualTour || hasFloorPlan) && (
         <section id="virtual-tour" className="scroll-mt-24 bg-[#ebe1cf] px-5 py-14 md:py-20">
@@ -707,205 +664,116 @@ const PropertyDetailedPage = () => {
         </section>
       )}
 
-      {false && (hasVirtualTour || hasFloorPlan) && (
-        <section id="virtual-tour" className="scroll-mt-24 border-y border-real-estate-secondary/20 bg-[#050706] text-[#f8f0df]">
-          <div className="mx-auto max-w-7xl px-5 py-16 md:py-20">
-            <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="font-text text-sm uppercase tracking-[0.34em] text-real-estate-secondary">Prezantim imersiv</p>
-                <h2 className="mt-3 max-w-4xl font-title text-[clamp(2.4rem,5vw,5rem)] leading-none">Photos And Virtual Tour</h2>
-              </div>
-              {hasVirtualTour && (
-                <a href={property.virtualTourUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 border border-real-estate-secondary px-5 py-3 font-text text-sm uppercase tracking-[0.22em] text-real-estate-secondary transition hover:bg-real-estate-secondary hover:text-real-estate-primary">
-                  <Compass size={17} /> Hape
-                </a>
-              )}
-            </div>
-            <div className="mb-5 flex flex-wrap gap-3">
-              {hasVirtualTour && (
-                <button type="button" onClick={() => setActiveMediaPanel("tour")} className={`inline-flex items-center gap-2 border px-5 py-3 font-text text-sm uppercase tracking-[0.22em] transition ${mediaPanel === "tour" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/55 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"}`}>
-                  <Compass size={17} /> 360° Panorama
-                </button>
-              )}
-              {hasFloorPlan && (
-                <button type="button" onClick={() => setActiveMediaPanel("floor")} className={`inline-flex items-center gap-2 border px-5 py-3 font-text text-sm uppercase tracking-[0.22em] transition ${mediaPanel === "floor" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/55 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"}`}>
-                  <FileText size={17} /> Plan
-                </button>
-              )}
-            </div>
-            <div className="overflow-hidden rounded-md border border-real-estate-secondary/25 bg-black shadow-2xl shadow-black/50">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-real-estate-secondary/15 bg-[#0a0d0b] px-4 py-3">
-                <span className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary">{mediaPanel === "tour" ? "Pioneer 360°" : "Floor Plan"}</span>
-                <div className="flex flex-wrap gap-2">
-                  {mediaPanel === "tour" && hasVirtualTour && (
-                    <a href={property.virtualTourUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-real-estate-secondary/50 px-3 py-2 font-text text-xs uppercase tracking-[0.18em] text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary">
-                      <ExternalLink size={15} /> Open
-                    </a>
-                  )}
-                  {mediaPanel === "floor" && hasFloorPlan && (
-                    <a href={property.floorPlanUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-real-estate-secondary/50 px-3 py-2 font-text text-xs uppercase tracking-[0.18em] text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary">
-                      <Download size={15} /> Download
-                    </a>
-                  )}
-                  <Button variant="outline" className="h-auto border-real-estate-secondary/50 bg-transparent px-3 py-2 font-text text-xs uppercase tracking-[0.18em] text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary" onClick={() => document.getElementById("realo-media-frame")?.requestFullscreen()}>
-                    <Maximize2 className="mr-2 h-4 w-4" /> Full Screen
-                  </Button>
-                </div>
-              </div>
-              <div id="realo-media-frame" className="relative min-h-[360px] bg-[#050706] md:min-h-[650px]">
-                {mediaPanel === "tour" && hasVirtualTour && (
-                  <iframe title={`${property.title} virtual tour`} src={property.virtualTourUrl} className="h-[420px] w-full bg-black md:h-[680px]" allow="fullscreen; accelerometer; gyroscope; xr-spatial-tracking" allowFullScreen loading="lazy" />
-                )}
-                {mediaPanel === "floor" && hasFloorPlan && (
-                  isFloorPlanPdf ? (
-                    <iframe title={`${property.title} floor plan`} src={property.floorPlanUrl} className="h-[420px] w-full bg-white md:h-[680px]" loading="lazy" />
-                  ) : (
-                    <div className="flex min-h-[420px] items-center justify-center bg-[#11150f] p-4 md:min-h-[680px]">
-                      <img src={property.floorPlanUrl} alt={`${property.title} floor plan`} className="max-h-[640px] w-full object-contain" loading="lazy" />
-                    </div>
-                  )
-                )}
-              </div>
-              <div className="flex flex-wrap gap-3 border-t border-real-estate-secondary/15 bg-[#050706] p-4">
-                {hasVirtualTour && (
-                  <button type="button" onClick={() => setActiveMediaPanel("tour")} className={`border px-5 py-3 font-text text-xs uppercase tracking-[0.24em] ${mediaPanel === "tour" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/50 text-real-estate-secondary"}`}>Reception</button>
-                )}
-                {hasFloorPlan && (
-                  <button type="button" onClick={() => setActiveMediaPanel("floor")} className={`border px-5 py-3 font-text text-xs uppercase tracking-[0.24em] ${mediaPanel === "floor" ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary" : "border-real-estate-secondary/50 text-real-estate-secondary"}`}>Plan</button>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {false && (hasVirtualTour || hasFloorPlan) && (
-        <section id="virtual-tour" className="scroll-mt-24 border-y border-real-estate-secondary/20 bg-real-estate-primary">
-          <div className="mx-auto max-w-7xl px-5 py-16">
-            <p className="font-text text-sm uppercase tracking-[0.32em] text-real-estate-secondary">Tur imersiv i pronës</p>
-            <h2 className="mt-3 max-w-4xl font-title text-[clamp(2.6rem,5.6vw,5.4rem)] leading-none text-[#f8f0df]">
-              Shëtit nëpër {property.title}
-            </h2>
-            <p className="mt-5 max-w-2xl text-[#f8f0df]/70">
-              Eksploro prezantimin 360° dhe planimetrinë pa dalë nga faqja e pronës.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-3">
-              {hasVirtualTour && (
-                <a href={property.virtualTourUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-real-estate-secondary bg-real-estate-secondary px-5 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-primary">
-                  <ExternalLink size={17} /> Hap turin
-                </a>
-              )}
-              {hasFloorPlan && (
-                <a href="#floor-plan" className="inline-flex items-center gap-2 border border-real-estate-secondary/70 px-5 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-secondary">
-                  <FileText size={17} /> Planimetria
-                </a>
-              )}
-            </div>
-            {hasVirtualTour && (
-              <div className="mt-8 overflow-hidden rounded-md border border-real-estate-secondary/20 bg-black">
-                <div className="flex justify-end border-b border-real-estate-secondary/15 p-3">
-                  <Button
-                    variant="outline"
-                    className="border-real-estate-secondary/50 bg-transparent text-real-estate-secondary hover:bg-real-estate-secondary hover:text-real-estate-primary"
-                    onClick={() => document.getElementById("pioneer-tour-frame")?.requestFullscreen()}
-                  >
-                    <Maximize2 className="mr-2 h-4 w-4" /> Ekran i plotë
-                  </Button>
-                </div>
-                <iframe
-                  id="pioneer-tour-frame"
-                  title={`${property.title} virtual tour`}
-                  src={property.virtualTourUrl}
-                  className="h-[420px] w-full md:h-[620px]"
-                  allow="fullscreen; accelerometer; gyroscope; xr-spatial-tracking"
-                  allowFullScreen
-                  loading="lazy"
-                />
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {false && hasFloorPlan && (
-        <section id="floor-plan" className="bg-[#f5efe1] px-5 py-16">
-          <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="font-text text-sm uppercase tracking-[0.28em] text-real-estate-secondary">Planimetria</p>
-              <h2 className="mt-2 font-title text-5xl text-real-estate-primary">Plani i katit</h2>
-            </div>
-            <a href={property.floorPlanUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 border border-real-estate-secondary px-4 py-3 font-text text-sm uppercase tracking-[0.2em] text-real-estate-secondary">
-              <Download size={17} /> Hap planimetrinë
-            </a>
-          </div>
-          <div className="overflow-hidden rounded-md border border-real-estate-primary/15 bg-white p-4 shadow-xl">
-            {isFloorPlanPdf ? (
-              <iframe title={`${property.title} floor plan`} src={property.floorPlanUrl} className="h-[680px] w-full bg-white" />
-            ) : (
-              <img src={property.floorPlanUrl} alt={`${property.title} floor plan`} className="max-h-[760px] w-full object-contain" loading="lazy" />
-            )}
-          </div>
-          </div>
-        </section>
-      )}
-
-      <section className="border-y border-real-estate-secondary/20 bg-[#f5efe1]">
-          <div className="mx-auto grid max-w-7xl gap-8 px-5 py-16 lg:grid-cols-[1fr_380px]">
-          <div>
-            <h2 className="font-title text-5xl text-real-estate-primary">Detajet e pronës</h2>
-            <p className="mt-5 max-w-3xl text-lg leading-8 text-real-estate-primary/75">
-              {property.description || "Nuk ka përshkrim të disponueshëm."}
-            </p>
+      <section className="bg-[#fbfaf7] px-4 pb-16 pt-8 md:px-5 md:pt-12">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10">
+          <div className="min-w-0 space-y-6">
             {detailFacts.length > 0 && (
-              <div className="mt-8 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {detailFacts.map(({ icon: Icon, label, value }) => (
-                  <span key={label} className="flex items-center gap-3 border border-real-estate-primary/15 bg-white/65 p-3 text-real-estate-primary/75">
-                    <Icon size={17} className="text-real-estate-secondary" />
-                    <span><strong className="text-real-estate-primary">{value}</strong> {label}</span>
-                  </span>
+                  <div key={label} className="flex items-center gap-3 rounded-xl border border-real-estate-primary/10 bg-white p-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-real-estate-secondary/15 text-real-estate-primary">
+                      <Icon size={18} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-lg font-semibold leading-tight text-real-estate-primary">{value}</span>
+                      <span className="block text-xs uppercase tracking-[0.1em] text-real-estate-primary/55">{label}</span>
+                    </span>
+                  </div>
                 ))}
               </div>
             )}
-            {features.length > 0 && (
-              <div className="mt-8 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-                {features.map((feature) => (
-                  <span key={String(feature)} className="flex items-center gap-2 border border-real-estate-primary/15 bg-white/65 p-3 text-real-estate-primary/70">
-                    <Check size={16} className="text-real-estate-secondary" /> {feature}
-                  </span>
-                ))}
+
+            <div className="rounded-2xl border border-real-estate-primary/10 bg-white p-6 md:p-8">
+              <h2 className="font-title text-3xl text-real-estate-primary">Përshkrimi</h2>
+              <div className="relative mt-4">
+                <p
+                  className={`whitespace-pre-line text-[15px] leading-7 text-real-estate-primary/80 md:text-base ${
+                    longDescription && !descriptionOpen ? "max-h-56 overflow-hidden" : ""
+                  }`}
+                >
+                  {property.description?.trim() || "Nuk ka përshkrim të disponueshëm."}
+                </p>
+                {longDescription && !descriptionOpen && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent" />
+                )}
               </div>
-            )}
-            {hasCoordinates && (
-              <div className="mt-10 overflow-hidden rounded-md border border-real-estate-secondary/20 bg-black">
-                <iframe
-                  title="Lokacioni i pronës"
-                  src={`https://www.google.com/maps?q=${property.latitude},${property.longitude}&z=15&output=embed`}
-                  className="h-[360px] w-full"
-                  loading="lazy"
-                  allowFullScreen
-                />
+              {longDescription && (
+                <button
+                  type="button"
+                  onClick={() => setDescriptionOpen((open) => !open)}
+                  className="mt-3 text-sm font-semibold text-real-estate-primary underline decoration-real-estate-secondary decoration-2 underline-offset-4"
+                >
+                  {descriptionOpen ? "Shfaq më pak" : "Lexo më shumë"}
+                </button>
+              )}
+
+              {infoRows.length > 0 && (
+                <>
+                  <h3 className="mt-8 font-title text-2xl text-real-estate-primary">Informacione</h3>
+                  <dl className="mt-3 grid gap-x-8 sm:grid-cols-2">
+                    {infoRows.map(([label, value]) => (
+                      <div key={label} className="flex items-baseline justify-between gap-4 border-b border-real-estate-primary/10 py-3 text-sm">
+                        <dt className="text-real-estate-primary/60">{label}</dt>
+                        <dd className="text-right font-semibold text-real-estate-primary">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              )}
+            </div>
+
+            {(hasCoordinates || hasText(property.address)) && (
+              <div className="rounded-2xl border border-real-estate-primary/10 bg-white p-6 md:p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="font-title text-3xl text-real-estate-primary">Lokacioni</h2>
+                    <p className="mt-2 flex items-start gap-2 text-real-estate-primary/75">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-real-estate-secondary" />
+                      {[property.address, property.city].filter(hasText).join(", ") || "Kosovë"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-real-estate-primary/15 px-4 py-2 text-sm font-semibold text-real-estate-primary transition hover:border-real-estate-secondary"
+                    >
+                      <ExternalLink className="h-4 w-4" /> Google Maps
+                    </a>
+                    <a
+                      href={directionsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full bg-real-estate-primary px-4 py-2 text-sm font-semibold text-real-estate-secondary transition hover:bg-real-estate-primary/90"
+                    >
+                      <Navigation className="h-4 w-4" /> Udhëzime
+                    </a>
+                  </div>
+                </div>
+                {hasCoordinates && (
+                  <div className="mt-5 overflow-hidden rounded-xl border border-real-estate-primary/10 bg-[#efe8d7]">
+                    <iframe
+                      title="Lokacioni i pronës"
+                      src={`https://www.google.com/maps?q=${property.latitude},${property.longitude}&z=15&output=embed`}
+                      className="h-[300px] w-full md:h-[380px]"
+                      loading="lazy"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
-          <aside className="h-fit border border-real-estate-primary/15 bg-white p-6 shadow-xl lg:sticky lg:top-28">
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-real-estate-primary p-2">
-                <img src={logoImage} alt="Realo Real Estate" className="h-full w-full object-contain" />
-              </div>
-              <div>
-                <h3 className="text-xl text-real-estate-primary">Realo Real Estate</h3>
-                <a href="tel:+38348282262" className="text-real-estate-secondary">+383 48 282 262</a>
-              </div>
-            </div>
-            <Button
-              asChild
-              className="mt-6 w-full bg-real-estate-secondary text-real-estate-primary hover:bg-white"
-            >
-              <a href={whatsappUrl} target="_blank" rel="noreferrer">
-              Kërko vizitë
-              </a>
-            </Button>
+
+          <aside className="h-fit lg:sticky lg:top-28">
+            <PropertyVisitCard
+              propertyId={propertyId}
+              title={property.title}
+              price={formatPublicPrice(property.price)}
+              isForSale={property.isForSale}
+              propertyUrl={propertyUrl}
+            />
           </aside>
         </div>
       </section>
@@ -924,7 +792,7 @@ const PropertyDetailedPage = () => {
       )}
 
       {lightboxOpen && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-black/95 text-white">
+        <div className="fixed inset-0 z-[1100] flex flex-col bg-black/95 text-white">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
             <div className="min-w-0">
               <p className="truncate font-text text-xs uppercase tracking-[0.22em] text-real-estate-secondary">
@@ -965,11 +833,21 @@ const PropertyDetailedPage = () => {
             </div>
           </div>
 
-          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
+          <div
+            className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4"
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0].clientX;
+            }}
+            onTouchEnd={(e) => {
+              const dx = e.changedTouches[0].clientX - touchStartX.current;
+              if (lightboxZoom === 1 && Math.abs(dx) > 50) (dx < 0 ? nextLightboxImage : previousLightboxImage)();
+            }}
+          >
             {galleryImages.length > 1 && (
               <>
                 <button
                   type="button"
+                  id="lightbox-prev"
                   onClick={previousLightboxImage}
                   className="fixed left-4 top-1/2 z-10 bg-black/70 p-3 text-real-estate-secondary hover:bg-black"
                   aria-label="Previous image"
@@ -978,6 +856,7 @@ const PropertyDetailedPage = () => {
                 </button>
                 <button
                   type="button"
+                  id="lightbox-next"
                   onClick={nextLightboxImage}
                   className="fixed right-4 top-1/2 z-10 bg-black/70 p-3 text-real-estate-secondary hover:bg-black"
                   aria-label="Next image"
@@ -993,6 +872,26 @@ const PropertyDetailedPage = () => {
               style={{ transform: `scale(${lightboxZoom})` }}
             />
           </div>
+          {galleryImages.length > 1 && (
+            <div className="no-scrollbar flex gap-2 overflow-x-auto border-t border-white/10 px-4 py-3">
+              {galleryImages.map((img, index) => (
+                <button
+                  key={`${img.imageUrl}-thumb-${index}`}
+                  type="button"
+                  onClick={() => {
+                    setLightboxZoom(1);
+                    setLightboxImageIndex(index);
+                  }}
+                  aria-label={`Foto ${index + 1}`}
+                  className={`h-14 w-20 shrink-0 overflow-hidden rounded-md border-2 transition ${
+                    index === lightboxImageIndex ? "border-real-estate-secondary" : "border-transparent opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  <img src={img.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
