@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import wordmarkImage from "../assets/LogoMainSection.png";
 
 // The icon inside the "O" of REALO (same paths as public/Logo.svg and public/logo.png).
 const logoPathA =
@@ -84,13 +85,23 @@ export const FullPageLoader: React.FC<{ label?: string }> = ({ label = "Duke nga
   </div>
 );
 
-/** Short branded intro on the first visit to the home page in a session. Tap to skip. */
-export const HomeIntroOverlay: React.FC = () => {
-  const location = useLocation();
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+const INTRO_KEY = "realo-intro-seen";
+const INTRO_MS = 3500;
+
+/**
+ * Opening animation, once per visit (any landing page), ~3.5s, tap to skip:
+ * the "O" icon draws itself in gold, fills, slides into place as "REAL" is revealed
+ * next to it (the full REALO logo), a shine passes over it, then the screen lifts away.
+ * The icon sits exactly over the O of the logo image, so the hand-off is seamless.
+ */
+export const SiteIntro: React.FC = () => {
   const [show, setShow] = useState(() => {
-    if (typeof window === "undefined") return false;
+    if (typeof window === "undefined" || prefersReducedMotion()) return false;
     try {
-      return location.pathname === "/" && sessionStorage.getItem("realo-home-intro-complete") !== "true";
+      return sessionStorage.getItem(INTRO_KEY) !== "true";
     } catch {
       return false;
     }
@@ -98,7 +109,7 @@ export const HomeIntroOverlay: React.FC = () => {
 
   const finish = () => {
     try {
-      sessionStorage.setItem("realo-home-intro-complete", "true");
+      sessionStorage.setItem(INTRO_KEY, "true");
     } catch {
       /* storage unavailable */
     }
@@ -107,22 +118,86 @@ export const HomeIntroOverlay: React.FC = () => {
 
   useEffect(() => {
     if (!show) return;
-    const timeout = window.setTimeout(finish, 1500);
+    const timeout = window.setTimeout(finish, INTRO_MS);
     return () => window.clearTimeout(timeout);
   }, [show]);
 
-  if (!show || location.pathname !== "/") return null;
+  if (!show) return null;
 
   return (
     <div
       onClick={finish}
-      className="realo-intro fixed inset-0 z-[9999] flex cursor-pointer items-center justify-center bg-[#06130f]"
+      className="realo-intro fixed inset-0 z-[9999] flex cursor-pointer flex-col items-center justify-center bg-[#06130f]"
       aria-hidden="true"
     >
-      <div className="realo-intro-mark flex flex-col items-center gap-5">
-        <RealoMark className="h-24 w-24 sm:h-28 sm:w-28" />
-        <span className="font-title text-sm tracking-[0.5em] text-[#c69937]">REAL ESTATE</span>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(10,72,52,0.9),transparent_65%)]" />
+
+      {/* Same proportions as the logo image (477 × 154). */}
+      <div className="relative aspect-[477/154] w-[min(78vw,440px)]">
+        <img src={wordmarkImage} alt="" className="realo-intro-real absolute inset-0 h-full w-full" />
+        <span
+          className="realo-intro-shine absolute inset-0"
+          style={{
+            WebkitMaskImage: `url(${wordmarkImage})`,
+            maskImage: `url(${wordmarkImage})`,
+            WebkitMaskSize: "100% 100%",
+            maskSize: "100% 100%",
+          }}
+        />
+        {/* The icon, placed over the O of the logo image (x 320–456, y 8–144 of 477 × 154). */}
+        <svg
+          viewBox="0 0 155.74 156.09"
+          className="realo-intro-icon absolute"
+          style={{ left: "67.09%", top: "5.19%", width: "28.51%", height: "88.31%" }}
+        >
+          <g fill="none" stroke={LOGO_GOLD} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+            <path className="realo-intro-draw" d={logoPathA} pathLength={1} />
+            <path className="realo-intro-draw realo-intro-draw-2" d={logoPathB} pathLength={1} />
+          </g>
+          <g fill={LOGO_GOLD} className="realo-intro-fill">
+            <path d={logoPathA} />
+            <path d={logoPathB} />
+          </g>
+        </svg>
       </div>
+      <span className="realo-intro-tagline relative mt-6 font-title text-xs tracking-[0.6em] text-[#c69937] sm:text-sm">
+        REAL ESTATE
+      </span>
+    </div>
+  );
+};
+
+/**
+ * Between pages: a quick (~0.65s) dark cover with the logo icon spinning once, then the
+ * new page appears. Not a loader; it never waits for anything.
+ */
+export const RouteTransition: React.FC = () => {
+  const { pathname } = useLocation();
+  const previous = useRef(pathname);
+  const [run, setRun] = useState(0);
+
+  useEffect(() => {
+    if (previous.current === pathname) return;
+    previous.current = pathname;
+    if (prefersReducedMotion()) return;
+    setRun((n) => n + 1);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!run) return;
+    const timeout = window.setTimeout(() => setRun(0), 650);
+    return () => window.clearTimeout(timeout);
+  }, [run]);
+
+  if (!run) return null;
+
+  return (
+    <div
+      key={run}
+      className="realo-route pointer-events-none fixed inset-0 z-[9998] flex items-center justify-center bg-[#06130f]"
+      aria-hidden="true"
+    >
+      <RealoMark className="realo-route-mark h-20 w-20 sm:h-24 sm:w-24" />
     </div>
   );
 };
