@@ -4,13 +4,15 @@ import { ArrowUpRight, Heart, Mail, MapPin, Phone } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import logoImage from "../assets/LogoMainSection.png";
 import { PROPERTY_TYPES } from "@/lib/properties";
-import { EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "./Header";
+import { EMAIL, PHONE_DISPLAY, PHONE_TEL } from "./Header";
+import { useContextWhatsAppLink } from "@/lib/whatsapp";
 
 const heading = "font-text text-xs uppercase tracking-[0.24em] text-real-estate-secondary";
 const link = "text-sm text-white/70 transition hover:text-white";
 
 const Footer = () => {
   const navigate = useNavigate();
+  const whatsappHref = useContextWhatsAppLink();
   const [, setTaps] = useState(0);
   const resetTimer = useRef<number | null>(null);
 
@@ -59,7 +61,7 @@ const Footer = () => {
               Ofroni pronën <ArrowUpRight className="h-4 w-4" />
             </Link>
             <a
-              href={WHATSAPP_URL}
+              href={whatsappHref}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white transition hover:border-real-estate-secondary hover:text-real-estate-secondary"

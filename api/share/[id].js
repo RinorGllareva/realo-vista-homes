@@ -146,7 +146,10 @@ export default async function handler(req, res) {
       : "";
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+    // Bots and people share this URL. Never let the edge cache serve this bot page to a
+    // person (they must get the redirect above); the script below is a last fallback.
+    res.setHeader("Cache-Control", "no-store");
+    const target = escapeHtml(redirectUrl);
 
     return res.status(200).send(`<!doctype html>
 <html lang="sq">
@@ -161,9 +164,18 @@ export default async function handler(req, res) {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>location.replace(${JSON.stringify(redirectUrl).replace(/</g, "\\u003c")});</script>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #06130f; color: #f5f0e8; font-family: system-ui, sans-serif; text-align: center; }
+    a { display: inline-block; margin-top: 16px; padding: 12px 22px; border-radius: 999px; background: #c69937; color: #0a4834; font-weight: 700; text-decoration: none; }
+  </style>
 </head>
 <body>
-  <a href="${escapeHtml(redirectUrl)}">Open property</a>
+  <main>
+    <p>${title}</p>
+    <a href="${target}">Hap pronën</a>
+  </main>
 </body>
 </html>`);
   } catch (error) {
