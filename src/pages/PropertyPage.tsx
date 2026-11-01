@@ -66,13 +66,16 @@ const PropertyPage = () => {
         <link rel="canonical" href="https://realo-realestate.com/Property" />
       </Helmet>
       <Header />
-      <section className="relative overflow-hidden bg-real-estate-primary px-5 pb-12 pt-28 text-white md:pb-16 md:pt-36">
-        <img
-          src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&auto=format&fit=crop"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-30"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-real-estate-primary via-real-estate-primary/85 to-real-estate-primary/40" />
+      {/* Not overflow-hidden: the area/price popovers open below the hero. */}
+      <section className="relative z-20 bg-real-estate-primary px-4 pb-6 pt-28 text-white md:px-5 md:pb-10 md:pt-36">
+        <div className="absolute inset-0 overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&auto=format&fit=crop"
+            alt=""
+            className="h-full w-full object-cover opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-real-estate-primary via-real-estate-primary/85 to-real-estate-primary/40" />
+        </div>
         <div className="relative mx-auto max-w-7xl">
           <p className="font-text text-xs uppercase tracking-[0.28em] text-real-estate-secondary sm:text-sm">
             Prona të veçanta
@@ -84,9 +87,9 @@ const PropertyPage = () => {
             Shfleto shtëpi, banesa, hapësira komerciale dhe toka me media më të qarta, filtra
             më të pastër dhe ture 360° kur janë të disponueshme.
           </p>
+          <PropertyHeader filters={filters} onChange={updateFilters} />
         </div>
       </section>
-      <PropertyHeader filters={filters} onChange={updateFilters} />
       <PropertyList filters={filters} onChange={updateFilters} />
       <Footer />
     </div>
