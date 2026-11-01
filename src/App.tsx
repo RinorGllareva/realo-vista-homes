@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { FullPageLoader, HomeIntroOverlay } from "@/components/RealoLoader";
+import { FullPageLoader, RouteTransition, SiteIntro } from "@/components/RealoLoader";
 import ScrollManager from "@/components/ScrollManager";
 import HomePage from "./pages/HomePage";
 import PropertyPage from "./pages/PropertyPage";
@@ -31,7 +31,8 @@ const PageFallback = () => <FullPageLoader />;
 
 const AppRoutes = () => (
   <>
-    <HomeIntroOverlay />
+    <SiteIntro />
+    <RouteTransition />
     <ScrollManager />
     <Suspense fallback={<PageFallback />}>
       <Routes>
