@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { RealoLoader } from "@/components/RealoLoader";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -491,7 +492,7 @@ const Dashboard: React.FC = () => {
           <div className="border border-real-estate-secondary/15 bg-[#0d1510]">
             {loading ? (
               <div className="flex min-h-72 items-center justify-center">
-                <div className="h-10 w-10 animate-spin rounded-full border-2 border-real-estate-secondary border-t-transparent" />
+                <RealoLoader size="md" label="Loading properties…" />
               </div>
             ) : filteredList.length === 0 ? (
               <div className="flex min-h-72 flex-col items-center justify-center text-center">

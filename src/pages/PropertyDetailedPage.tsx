@@ -28,6 +28,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import PropertyCard from "../components/PropertyCard";
 import FavoriteButton from "../components/FavoriteButton";
+import { RealoLoader } from "@/components/RealoLoader";
 import { firstImage, useProperties, type PropertySummary } from "@/lib/properties";
 import { PublicVirtualTour } from "@/components/PublicVirtualTour";
 import { Button } from "@/components/ui/button";
@@ -288,10 +289,7 @@ const PropertyDetailedPage = () => {
                 <h1 className="max-w-5xl font-title text-[clamp(2.2rem,6.2vw,5.8rem)] leading-[0.95] text-white">
                   {summary?.title ?? <span className="inline-block h-14 w-2/3 animate-pulse rounded bg-white/10" />}
                 </h1>
-                <p className="mt-5 inline-flex items-center gap-3 text-sm text-white/60">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-real-estate-secondary" />
-                  Duke ngarkuar detajet…
-                </p>
+                <RealoLoader size="sm" label="Duke ngarkuar detajet…" className="mt-6 !flex-row !gap-3" />
               </>
             )}
           </div>

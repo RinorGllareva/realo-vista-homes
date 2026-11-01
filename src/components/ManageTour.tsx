@@ -37,10 +37,12 @@ const outlineGoldButton = "border-real-estate-secondary/40 bg-transparent text-r
 function SortableRoom({
   room,
   active,
+  isStart,
   onSelect,
 }: {
   room: TourRoom;
   active: boolean;
+  isStart: boolean;
   onSelect: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: room.roomId });
@@ -61,7 +63,9 @@ function SortableRoom({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate font-text text-sm font-semibold text-[#f8f0df]">{room.label}</span>
-        <span className="block text-xs text-[#f5f0e8]/45">{room.hotspots.length} hotspots</span>
+        <span className="block text-xs text-[#f5f0e8]/45">
+          {room.hotspots.length} hotspots{isStart ? " · Start room" : ""}
+        </span>
       </span>
     </button>
   );
@@ -80,6 +84,23 @@ export default function ManageTour() {
   const [saving, setSaving] = useState(false);
   const [newRoomLabel, setNewRoomLabel] = useState("");
   const [newRoomFile, setNewRoomFile] = useState<File | null>(null);
+  // Room/hotspot edits stay local until "Save Draft"; remember that so they aren't lost.
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  const fail = (error: unknown, fallback: string) => {
+    console.error(error);
+    toast({ title: "Error", description: apiErrorMessage(error, fallback), variant: "destructive" });
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -107,6 +128,7 @@ export default function ManageTour() {
   }, [propertyId]);
 
   const updateRoom = (roomId: number, patch: Partial<TourRoom>) => {
+    setDirty(true);
     setTour((current) => {
       if (!current) return current;
       return {
@@ -118,6 +140,7 @@ export default function ManageTour() {
 
   const updateHotspot = (hotspotId: number, patch: Partial<TourHotspot>) => {
     if (!activeRoom) return;
+    setDirty(true);
     setTour((current) => {
       if (!current) return current;
       return {
@@ -161,16 +184,26 @@ export default function ManageTour() {
     }
   };
 
-  const saveTour = async (forcedPublished?: boolean) => {
+  const saveTour = async (forcedPublished?: boolean): Promise<boolean> => {
     const isPublished = forcedPublished ?? !!tour?.isPublished;
     if (!tour?.tourId) {
-      const { data } = await axios.post(apiUrl(`/api/VirtualTour/CreateOrUpdate/${propertyId}`), {
-        title: tour?.title || "Virtual Tour",
-        startRoomId: tour?.startRoomId || activeRoom?.roomId || null,
-        isPublished,
-      });
-      setTour(data);
-      return;
+      try {
+        setSaving(true);
+        const { data } = await axios.post(apiUrl(`/api/VirtualTour/CreateOrUpdate/${propertyId}`), {
+          title: tour?.title || "Virtual Tour",
+          startRoomId: tour?.startRoomId || activeRoom?.roomId || null,
+          isPublished,
+        });
+        setTour(data);
+        setDirty(false);
+        toast({ title: "Saved", description: "Virtual tour was created." });
+        return true;
+      } catch (error) {
+        fail(error, "Failed to save virtual tour.");
+        return false;
+      } finally {
+        setSaving(false);
+      }
     }
 
     try {
@@ -189,10 +222,12 @@ export default function ManageTour() {
         ),
       );
       await loadTour();
+      setDirty(false);
       toast({ title: "Saved", description: "Virtual tour changes were saved." });
+      return true;
     } catch (error) {
-      console.error(error);
-      toast({ title: "Error", description: "Failed to save virtual tour.", variant: "destructive" });
+      fail(error, "Failed to save virtual tour.");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -205,15 +240,22 @@ export default function ManageTour() {
     }
     const nextPublished = !tour.isPublished;
     setTour((current) => current ? { ...current, isPublished: nextPublished } : current);
-    await saveTour(nextPublished);
+    if (!(await saveTour(nextPublished))) {
+      setTour((current) => current ? { ...current, isPublished: !nextPublished } : current);
+    }
   };
 
   const deleteRoom = async (roomId: number) => {
     if (!confirm("Delete this room and its hotspots?")) return;
-    await axios.delete(apiUrl(`/api/VirtualTour/DeleteRoom/${roomId}`));
-    await loadTour();
-    setActiveRoomId(null);
-    setActiveHotspotId(null);
+    try {
+      await axios.delete(apiUrl(`/api/VirtualTour/DeleteRoom/${roomId}`));
+      await loadTour();
+      setActiveRoomId(null);
+      setActiveHotspotId(null);
+      toast({ title: "Room deleted" });
+    } catch (error) {
+      fail(error, "Failed to delete room.");
+    }
   };
 
   const addHotspotAt = async ({ yaw, pitch }: { yaw: number; pitch: number }) => {
@@ -224,12 +266,19 @@ export default function ManageTour() {
       setPlacingHotspot(false);
       return;
     }
-    const { data } = await axios.post(apiUrl(`/api/VirtualTour/AddHotspot/${activeRoom.roomId}`), {
-      toRoomId: target.roomId,
-      label: target.label,
-      yaw,
-      pitch,
-    });
+    let data;
+    try {
+      ({ data } = await axios.post(apiUrl(`/api/VirtualTour/AddHotspot/${activeRoom.roomId}`), {
+        toRoomId: target.roomId,
+        label: target.label,
+        yaw,
+        pitch,
+      }));
+    } catch (error) {
+      fail(error, "Failed to add hotspot.");
+      setPlacingHotspot(false);
+      return;
+    }
     setTour((current) => {
       if (!current) return current;
       return {
@@ -252,11 +301,26 @@ export default function ManageTour() {
   };
 
   const deleteHotspot = async (hotspotId: number) => {
-    await axios.delete(apiUrl(`/api/VirtualTour/DeleteHotspot/${hotspotId}`));
+    try {
+      await axios.delete(apiUrl(`/api/VirtualTour/DeleteHotspot/${hotspotId}`));
+    } catch (error) {
+      fail(error, "Failed to delete hotspot.");
+      return;
+    }
     if (!activeRoom) return;
-    updateRoom(activeRoom.roomId, {
-      hotspots: activeRoom.hotspots.filter((hotspot) => hotspot.hotspotId !== hotspotId),
-    });
+    // Already deleted on the server; update the screen without marking it unsaved.
+    setTour((current) =>
+      current
+        ? {
+            ...current,
+            rooms: current.rooms.map((room) =>
+              room.roomId === activeRoom.roomId
+                ? { ...room, hotspots: room.hotspots.filter((hotspot) => hotspot.hotspotId !== hotspotId) }
+                : room,
+            ),
+          }
+        : current,
+    );
     setActiveHotspotId(null);
   };
 
@@ -265,6 +329,7 @@ export default function ManageTour() {
     const oldIndex = tour.rooms.findIndex((room) => room.roomId === event.active.id);
     const newIndex = tour.rooms.findIndex((room) => room.roomId === event.over?.id);
     setTour({ ...tour, rooms: arrayMove(tour.rooms, oldIndex, newIndex).map((room, index) => ({ ...room, sortOrder: index })) });
+    setDirty(true);
   };
 
   return (
@@ -280,6 +345,11 @@ export default function ManageTour() {
               <Button variant="outline" className={outlineGoldButton} onClick={() => navigate("/dashboard")}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Dashboard
               </Button>
+              {dirty && (
+                <span className="self-center text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">
+                  Unsaved changes
+                </span>
+              )}
               <Button className={goldButton} onClick={() => saveTour()} disabled={saving}>
                 <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save Draft"}
               </Button>
@@ -320,8 +390,11 @@ export default function ManageTour() {
                   <SortableContext items={tour?.rooms.map((room) => room.roomId) || []} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2">
                       {tour?.rooms.map((room) => (
-                        <SortableRoom key={room.roomId} room={room} active={activeRoom?.roomId === room.roomId} onSelect={() => setActiveRoomId(room.roomId)} />
+                        <SortableRoom key={room.roomId} room={room} active={activeRoom?.roomId === room.roomId} isStart={tour.startRoomId === room.roomId} onSelect={() => setActiveRoomId(room.roomId)} />
                       ))}
+                      {!tour?.rooms.length && (
+                        <p className="text-sm text-[#f5f0e8]/50">No rooms yet. Upload a 360° panorama above to add the first room.</p>
+                      )}
                     </div>
                   </SortableContext>
                 </DndContext>
@@ -350,7 +423,10 @@ export default function ManageTour() {
                       <Label>Compass offset</Label>
                       <Input className={field} type="number" step="0.01" value={activeRoom.compassOffset} onChange={(event) => updateRoom(activeRoom.roomId, { compassOffset: Number(event.target.value) })} />
                     </div>
-                    <Button className={outlineGoldButton} onClick={() => setTour((current) => current ? { ...current, startRoomId: activeRoom.roomId } : current)}>
+                    <Button className={outlineGoldButton} onClick={() => {
+                        setTour((current) => current ? { ...current, startRoomId: activeRoom.roomId } : current);
+                        setDirty(true);
+                      }}>
                       <Compass className="mr-2 h-4 w-4" /> Set Start Room
                     </Button>
                     <Button className="border border-red-500/50 bg-red-950/40 text-red-200 hover:bg-red-700 hover:text-white" onClick={() => deleteRoom(activeRoom.roomId)}>

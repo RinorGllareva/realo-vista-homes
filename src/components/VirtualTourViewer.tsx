@@ -55,6 +55,9 @@ export function VirtualTourViewer({
       defaultPitch: room.initialPitch,
       navbar: editable ? ["zoom", "caption", "fullscreen"] : ["zoom", "caption", "fullscreen"],
       caption: room.label,
+      // Same logo loader as the rest of the site instead of the library's grey bubble.
+      loadingImg: "/Logo.svg",
+      loadingTxt: "",
       plugins: [[MarkersPlugin, { markers }]],
     });
 

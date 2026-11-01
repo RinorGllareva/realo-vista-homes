@@ -67,91 +67,80 @@ body::-webkit-scrollbar-thumb:hover,
   background: #f0d46c;
 }
 
-.realo-logo-draw {
-  stroke-width: 4.8;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  opacity: 0.95;
-  filter: drop-shadow(0 0 8px rgba(201, 171, 3, 0.35));
-  animation: realo-logo-draw 1.35s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+/* 360° viewer loading state, matched to the site loader */
+.psv-loader-container {
+  background: #06130f;
+}
+.psv-loader {
+  width: 96px !important;
+  height: 96px !important;
+  color: #c69937 !important;
+  background: transparent !important;
+}
+.psv-loader-image,
+.psv-loader img {
+  width: 56%;
+  animation: realo-breathe 1.6s ease-in-out infinite;
 }
 
-.realo-logo-draw-delay {
-  animation-delay: 0.18s;
+/* ---- Loader: the REALO "O" icon ---- */
+.realo-breathe {
+  animation: realo-breathe 1.6s ease-in-out infinite;
 }
 
-.realo-logo-fill {
-  opacity: 0;
-  animation: realo-logo-fill 0.75s ease 1.15s forwards;
+.realo-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: realo-ring 1.2s linear infinite;
 }
 
-.realo-logo-glow::before {
-  content: "";
-  position: absolute;
-  inset: -14px;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(201, 171, 3, 0.28), transparent 62%);
-  opacity: 0;
-  animation: realo-logo-glow 1.25s ease 1.15s forwards;
+.realo-intro {
+  animation: realo-intro-out 0.35s ease 1.15s forwards;
+}
+
+.realo-intro-mark {
+  animation: realo-intro-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .realo-login-rise {
   opacity: 0;
   transform: translateY(8px);
-  animation: realo-login-rise 0.7s ease 1.25s forwards;
+  animation: realo-login-rise 0.5s ease 0.15s forwards;
 }
 
-.realo-route-loader {
-  animation: realo-loader-fade 1.95s ease forwards;
-}
-
-.realo-home-intro {
-  animation: realo-home-intro-exit 2.85s ease forwards;
-}
-
-.realo-home-intro-logo {
-  animation: realo-home-logo-zoom 2.55s cubic-bezier(0.72, 0, 0.2, 1) forwards;
-}
-
-.realo-home-intro-flash {
-  opacity: 0;
-  animation: realo-home-white-flash 2.85s ease forwards;
-}
-
-.realo-home-intro-black {
-  opacity: 0;
-  animation: realo-home-black-pass 2.85s ease forwards;
-}
-
-@keyframes realo-logo-draw {
-  from {
-    stroke-dashoffset: 1;
+@keyframes realo-breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.82;
   }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes realo-logo-fill {
-  from {
-    opacity: 0;
-  }
-  to {
+  50% {
+    transform: scale(1);
     opacity: 1;
   }
 }
 
-@keyframes realo-logo-glow {
-  0% {
-    opacity: 0;
-    transform: scale(0.78);
+@keyframes realo-ring {
+  to {
+    transform: rotate(360deg);
   }
-  45% {
-    opacity: 0.9;
-  }
-  100% {
+}
+
+@keyframes realo-intro-in {
+  from {
     opacity: 0;
-    transform: scale(1.18);
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes realo-intro-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
   }
 }
 
@@ -162,103 +151,19 @@ body::-webkit-scrollbar-thumb:hover,
   }
 }
 
-@keyframes realo-loader-fade {
-  0% {
-    opacity: 0;
-  }
-  18%,
-  74% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes realo-home-logo-zoom {
-  0% {
-    opacity: 1;
-    transform: scale(0.82);
-  }
-  44% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  78% {
-    opacity: 1;
-    transform: scale(9);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(18);
-  }
-}
-
-@keyframes realo-home-white-flash {
-  0%,
-  66% {
-    opacity: 0;
-  }
-  74% {
-    opacity: 0.92;
-  }
-  82% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes realo-home-black-pass {
-  0%,
-  76% {
-    opacity: 0;
-  }
-  84% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes realo-home-intro-exit {
-  0%,
-  88% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    visibility: hidden;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .realo-logo-draw,
-  .realo-logo-draw-delay,
-  .realo-logo-fill,
-  .realo-logo-glow::before,
-  .realo-login-rise,
-  .realo-route-loader,
-  .realo-home-intro,
-  .realo-home-intro-logo,
-  .realo-home-intro-flash,
-  .realo-home-intro-black {
-    animation: none;
-  }
-
-  .realo-logo-draw {
-    stroke-dashoffset: 0;
-  }
-
-  .realo-logo-fill,
+  .realo-breathe,
+  .realo-intro-mark,
   .realo-login-rise {
+    animation: none;
     opacity: 1;
     transform: none;
   }
-
-  .realo-home-intro {
+  /* Keep a slow ring so loading is still visible. */
+  .realo-ring {
+    animation-duration: 3s;
+  }
+  .realo-intro {
     display: none;
   }
 }

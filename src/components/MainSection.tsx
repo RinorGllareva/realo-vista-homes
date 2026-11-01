@@ -1,47 +1,63 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronDown, Search } from "lucide-react";
+import { PROPERTY_TYPES, useProperties } from "@/lib/properties";
+import { parsePriceNumber } from "@/lib/price";
+
+type Deal = "sale" | "rent";
+
+// Budgets make sense per deal type: monthly rent vs. purchase price.
+const BUDGETS: Record<Deal, number[]> = {
+  sale: [50000, 75000, 100000, 150000, 200000, 300000, 500000, 1000000],
+  rent: [200, 300, 400, 500, 750, 1000, 1500, 2500],
+};
+
+const QUICK_TYPES = ["Apartment", "House", "Store", "Land"];
+
+const formatBudget = (n: number) =>
+  n >= 1000000 ? `€${n / 1000000}M` : n >= 1000 ? `€${n / 1000}k` : `€${n}`;
 
 const MainSection: React.FC = () => {
-  const [filters, setFilters] = useState({
-    propertyType: "",
-    minPrice: "",
-    maxPrice: "",
-    bedrooms: "",
-  });
-
   const navigate = useNavigate();
+  const { data: properties = [] } = useProperties();
+  const [deal, setDeal] = useState<Deal>("sale");
+  const [propertyType, setPropertyType] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = event.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
+  const changeDeal = (next: Deal) => {
+    setDeal(next);
+    setMaxPrice(""); // sale and rent budgets are not comparable
   };
 
-  const handleSearch = () => {
-    const entries = Object.entries(filters).filter(([, value]) => value);
-    navigate(`/Property?${new URLSearchParams(entries).toString()}`);
+  // Live count so the button says exactly how many results the search will show.
+  const matches = useMemo(() => {
+    const max = Number(maxPrice);
+    const beds = parseInt(bedrooms, 10);
+    return properties.filter(
+      (p) =>
+        p.isForSale === (deal === "sale") &&
+        (!propertyType || p.propertyType?.toLowerCase() === propertyType.toLowerCase()) &&
+        (!maxPrice || parsePriceNumber(p.price) <= max) &&
+        (!bedrooms || (bedrooms.endsWith("+") ? (p.bedrooms ?? 0) >= beds : p.bedrooms === beds))
+    ).length;
+  }, [properties, deal, propertyType, maxPrice, bedrooms]);
+
+  const search = (event?: React.FormEvent) => {
+    event?.preventDefault();
+    const params = new URLSearchParams({ isForSale: String(deal === "sale") });
+    if (propertyType) params.set("propertyType", propertyType);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    if (bedrooms) params.set("bedrooms", bedrooms);
+    navigate(`/Property?${params.toString()}`);
   };
 
-  const minPriceOptions = [
-    300, 1000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 200000, 300000,
-    400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000,
-    2500000, 3000000, 3500000, 4000000, 4500000, 5000000, 6000000, 7000000,
-    8000000, 9000000,
-  ];
-
-  const selectClass =
-    "w-full rounded-md border border-real-estate-secondary bg-real-estate-primary/90 px-4 py-3 font-text text-base font-semibold text-white outline-none transition focus:ring-2 focus:ring-real-estate-secondary md:w-auto md:min-w-[160px]";
-  const propertyTypes = [
-    { value: "House", label: "Shtëpi" },
-    { value: "Apartment", label: "Banesë" },
-    { value: "Land", label: "Tokë" },
-    { value: "Store", label: "Lokal" },
-    { value: "Warehouse", label: "Depo" },
-    { value: "Building", label: "Objekt" },
-    { value: "Office", label: "Zyrë" },
-  ];
+  const field =
+    "peer h-12 w-full appearance-none rounded-lg border border-real-estate-primary/15 bg-white pl-3.5 pr-9 text-[15px] font-medium text-real-estate-primary outline-none transition focus:border-real-estate-secondary focus:ring-2 focus:ring-real-estate-secondary/30";
+  const label = "mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-real-estate-primary/60";
 
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 text-white">
+    <section className="relative flex min-h-[100svh] items-end overflow-hidden text-white md:items-center">
       <video
         className="absolute inset-0 h-full w-full object-cover"
         autoPlay
@@ -55,107 +71,118 @@ const MainSection: React.FC = () => {
         <source src="/video/hero-720.mp4" type="video/mp4" media="(max-width: 767px)" />
         <source src="/video/hero-1280.mp4" type="video/mp4" />
       </video>
-      <div className="absolute inset-0 bg-black/60" />
+      {/* Darker at the bottom on phones where the text sits, even on desktop. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-black/55 to-black/35 md:bg-gradient-to-r md:from-black/75 md:via-black/45 md:to-black/20" />
 
-      <div className="relative z-10 flex min-h-screen w-full max-w-6xl flex-col justify-end pb-10 pt-28 md:pb-20">
-        <div className="mb-10 text-center">
-          <div
-            className="mx-auto flex max-w-full flex-col items-center justify-center gap-y-1 text-real-estate-secondary sm:flex-row sm:items-baseline sm:gap-x-[clamp(0.25rem,1vw,0.75rem)] sm:whitespace-nowrap"
-            aria-label="WELCOME TO REALO REAL ESTATE"
-          >
-            <span className="font-text text-[clamp(1.1rem,4.5vw,4.5rem)] leading-none tracking-[0.2em] sm:tracking-normal">
-              WELCOME TO
-            </span>
-            <h1 className="font-title text-[clamp(3.25rem,8.5vw,5.5rem)] leading-none sm:text-[clamp(1.75rem,8.5vw,5.5rem)]">
-              REALO
-            </h1>
-            <span className="font-text text-[clamp(1.1rem,4.5vw,4.5rem)] leading-tight tracking-[0.2em] sm:tracking-normal">
-              REAL ESTATE
-            </span>
-          </div>
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-8 pt-28 md:px-6 md:pb-16 md:pt-32">
+        <div className="max-w-3xl">
+          <p className="font-text text-xs uppercase tracking-[0.3em] text-real-estate-secondary sm:text-sm">
+            Welcome to Realo Real Estate
+          </p>
+          <h1 className="mt-3 font-title text-[clamp(2.15rem,7.5vw,4.75rem)] leading-[1.04] text-white [text-wrap:balance]">
+            Gjej pronën ideale në Prishtinë
+          </h1>
+          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/80 sm:text-lg">
+            Banesa, shtëpi, lokale dhe toka për shitje ose me qira, me foto të qarta dhe ture 360°.
+          </p>
         </div>
 
-        <div className="mx-auto w-full max-w-5xl">
-          <h2 className="mb-3 text-left text-lg font-medium text-white md:text-xl">
-            Gjej pronën ideale në Prishtinë
-          </h2>
-          <div className="grid gap-3 rounded-lg border border-real-estate-secondary/30 bg-white/5 p-3 shadow-2xl backdrop-blur-[2px] md:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
-            <select
-              name="propertyType"
-              value={filters.propertyType}
-              onChange={handleInputChange}
-              className={selectClass}
-            >
-              <option className="bg-real-estate-primary" value="">
-                Lloji i pronës
-              </option>
-              {propertyTypes.map(
-                (type) => (
-                  <option key={type.value} className="bg-real-estate-primary" value={type.value}>
-                    {type.label}
-                  </option>
-                )
-              )}
-            </select>
+        <form
+          onSubmit={search}
+          className="mt-7 w-full max-w-5xl rounded-2xl bg-white/95 p-3 text-real-estate-primary shadow-2xl shadow-black/40 backdrop-blur sm:p-4 md:mt-9"
+        >
+          <div role="tablist" aria-label="Lloji i marrëveshjes" className="mb-3 inline-flex rounded-full bg-real-estate-primary/[0.07] p-1">
+            {(
+              [
+                ["sale", "Në shitje"],
+                ["rent", "Me qira"],
+              ] as const
+            ).map(([value, text]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={deal === value}
+                onClick={() => changeDeal(value)}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  deal === value
+                    ? "bg-real-estate-primary text-real-estate-secondary shadow"
+                    : "text-real-estate-primary/70 hover:text-real-estate-primary"
+                }`}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
 
-            <select
-              name="minPrice"
-              value={filters.minPrice}
-              onChange={handleInputChange}
-              className={selectClass}
-            >
-              <option className="bg-real-estate-primary" value="">
-                Çmimi min.
-              </option>
-              {minPriceOptions.map((price) => (
-                <option key={price} value={String(price)} className="bg-real-estate-primary">
-                  {price.toLocaleString("en-US")}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-[1.2fr_1fr_1fr_auto] md:items-end">
+            <label className="col-span-2 md:col-span-1">
+              <span className={label}>Lloji i pronës</span>
+              <span className="relative block">
+                <select value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className={field}>
+                  <option value="">Të gjitha llojet</option>
+                  {PROPERTY_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-real-estate-primary/50" />
+              </span>
+            </label>
 
-            <select
-              name="maxPrice"
-              value={filters.maxPrice}
-              onChange={handleInputChange}
-              className={selectClass}
-            >
-              <option className="bg-real-estate-primary" value="">
-                Çmimi maks.
-              </option>
-              {minPriceOptions.map((price) => (
-                <option key={price} value={String(price)} className="bg-real-estate-primary">
-                  {price.toLocaleString("en-US")}
-                </option>
-              ))}
-            </select>
+            <label>
+              <span className={label}>{deal === "rent" ? "Qiraja deri" : "Çmimi deri"}</span>
+              <span className="relative block">
+                <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className={field}>
+                  <option value="">Pa kufi</option>
+                  {BUDGETS[deal].map((n) => (
+                    <option key={n} value={String(n)}>
+                      {formatBudget(n)}
+                      {deal === "rent" ? " / muaj" : ""}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-real-estate-primary/50" />
+              </span>
+            </label>
 
-            <select
-              name="bedrooms"
-              value={filters.bedrooms}
-              onChange={handleInputChange}
-              className={selectClass}
-            >
-              <option className="bg-real-estate-primary" value="">
-                Dhoma gjumi
-              </option>
-              {[1, 2, 3, 4, 5, 6, 7].map((count) => (
-                <option key={count} value={String(count)} className="bg-real-estate-primary">
-                  {count}
-                </option>
-              ))}
-              <option value="8+" className="bg-real-estate-primary">
-                8+
-              </option>
-            </select>
+            <label>
+              <span className={label}>Dhoma gjumi</span>
+              <span className="relative block">
+                <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} className={field}>
+                  <option value="">Çdo numër</option>
+                  {["1", "2", "3", "4+"].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-real-estate-primary/50" />
+              </span>
+            </label>
 
             <button
-              onClick={handleSearch}
-              className="rounded-md bg-real-estate-secondary px-7 py-3.5 font-text text-base font-bold uppercase tracking-[0.14em] text-real-estate-primary transition hover:bg-white"
+              type="submit"
+              className="col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-real-estate-secondary px-6 text-[15px] font-bold text-real-estate-primary transition hover:bg-real-estate-primary hover:text-real-estate-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-real-estate-primary focus-visible:ring-offset-2 md:col-span-1 md:min-w-[190px]"
             >
-              Kërko
+              <Search className="h-5 w-5" />
+              {properties.length ? `Shiko ${matches} prona` : "Kërko"}
             </button>
           </div>
+        </form>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-white/70">Kërkime të shpejta:</span>
+          {QUICK_TYPES.map((type) => (
+            <Link
+              key={type}
+              to={`/Property?propertyType=${type}`}
+              className="rounded-full border border-white/25 bg-black/20 px-3.5 py-1.5 font-medium text-white backdrop-blur-sm transition hover:border-real-estate-secondary hover:text-real-estate-secondary"
+            >
+              {PROPERTY_TYPES.find((t) => t.value === type)?.label}
+            </Link>
+          ))}
         </div>
       </div>
     </section>

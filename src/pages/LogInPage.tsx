@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Lock, User } from "lucide-react";
-import { AnimatedRealoLogo } from "@/components/RealoLoader";
+import { RealoMark } from "@/components/RealoLoader";
 import { login } from "@/lib/auth";
 
 const LoginPage: React.FC = () => {
@@ -57,7 +57,7 @@ const LoginPage: React.FC = () => {
             className="mx-auto inline-flex items-center justify-center"
             aria-label="Go to home page"
           >
-            <AnimatedRealoLogo />
+            <RealoMark className="h-20 w-20" title="Realo" />
           </button>
 
           <p className="realo-login-rise mt-6 font-text text-xs uppercase tracking-[0.32em] text-real-estate-secondary">
