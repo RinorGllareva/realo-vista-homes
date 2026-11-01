@@ -38,8 +38,9 @@ const AreaFilter: React.FC<AreaFilterProps> = ({ applyAreaFilter, className, scr
     setOpen(false);
   };
 
+  // Not positioned on phones, so the popover spans the whole filter row below it.
   return (
-    <div ref={ref} className={`relative ${className ?? ""}`}>
+    <div ref={ref} className={`sm:relative ${className ?? ""}`}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -56,7 +57,7 @@ const AreaFilter: React.FC<AreaFilterProps> = ({ applyAreaFilter, className, scr
       </button>
 
       {open && (
-        <div className="fixed inset-x-4 z-50 mt-3 sm:absolute sm:inset-x-auto sm:right-0 sm:w-[360px] rounded-lg border border-slate-200 bg-white p-3 shadow-2xl">
+        <div className="absolute inset-x-0 top-full z-50 mt-3 sm:inset-x-auto sm:right-0 sm:top-auto sm:w-[360px] rounded-lg border border-slate-200 bg-white p-3 shadow-2xl">
           <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
             <input
               type="number"
