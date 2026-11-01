@@ -315,10 +315,6 @@ const PropertyDetailedPage = () => {
   const propertyUrl = `https://www.realo-realestate.com/properties/${encodedTitle}/${propertyId}`;
   const shareVersion = encodeURIComponent((shareImage || propertyId).split("/").pop()?.slice(0, 80) || propertyId);
   const shareUrl = `https://www.realo-realestate.com/share/${propertyId}?v=${shareVersion}`;
-  const whatsappMessage = encodeURIComponent(
-    `Pershendetje Realo, jam i/e interesuar per kete prone: ${property.title} - ${propertyUrl}`
-  );
-  const whatsappUrl = `https://wa.me/38348282262?text=${whatsappMessage}`;
   const hasCoordinates = hasPositive(property.latitude) && hasPositive(property.longitude);
   const hasFloorPlan = hasText(property.floorPlanUrl);
   const hasInternalTour = !!internalTour?.isPublished && !!internalTour.rooms?.length;
@@ -772,7 +768,6 @@ const PropertyDetailedPage = () => {
               title={property.title}
               price={formatPublicPrice(property.price)}
               isForSale={property.isForSale}
-              propertyUrl={propertyUrl}
             />
           </aside>
         </div>

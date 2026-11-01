@@ -4,10 +4,10 @@ import { Heart, Mail, Menu, Phone, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import logoImage from "../assets/LogoMainSection.png";
 import { useFavorites } from "@/lib/favorites";
+import { useContextWhatsAppLink } from "@/lib/whatsapp";
 
 export const PHONE_DISPLAY = "+383 48 282 262";
 export const PHONE_TEL = "tel:+38348282262";
-export const WHATSAPP_URL = "https://wa.me/38348282262";
 export const EMAIL = "realorealestate11@gmail.com";
 
 const navItems = [
@@ -41,6 +41,7 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const overHero = location.pathname === "/";
+  const whatsappHref = useContextWhatsAppLink();
   const solid = !overHero || scrolled || menuOpen;
 
   useEffect(() => {
@@ -187,7 +188,7 @@ const Header = () => {
                   <Phone className="h-4 w-4 text-real-estate-secondary" /> Telefono
                 </a>
                 <a
-                  href={WHATSAPP_URL}
+                  href={whatsappHref}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-4 py-3.5 text-sm font-semibold text-white"

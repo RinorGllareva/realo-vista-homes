@@ -3,15 +3,13 @@ import { CalendarDays, MessageCircle, Phone } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { RealoMark } from "@/components/RealoLoader";
 import { PHONE_DISPLAY, PHONE_TEL } from "@/components/Header";
-
-const WHATSAPP_NUMBER = "38348282262";
+import { propertyQuestion, propertyShareLink, whatsappLink } from "@/lib/whatsapp";
 
 interface PropertyVisitCardProps {
   propertyId: string | number;
   title: string;
   price: string;
   isForSale: boolean;
-  propertyUrl: string;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -40,7 +38,8 @@ const chip = (active: boolean) =>
  * "Request a visit": the visitor picks a day and a time of day, and WhatsApp opens with a
  * complete message (property, link, preferred time) so the agent can confirm right away.
  */
-const PropertyVisitCard: React.FC<PropertyVisitCardProps> = ({ propertyId, title, price, isForSale, propertyUrl }) => {
+const PropertyVisitCard: React.FC<PropertyVisitCardProps> = ({ propertyId, title, price, isForSale }) => {
+  const link = propertyShareLink(propertyId);
   const [day, setDay] = useState<"today" | "tomorrow" | "pick">("tomorrow");
   const [pickedDate, setPickedDate] = useState(toInputDate(addDays(2)));
   const [time, setTime] = useState(TIMES[1].value);
@@ -68,18 +67,16 @@ const PropertyVisitCard: React.FC<PropertyVisitCardProps> = ({ propertyId, title
     const lines = [
       "Përshëndetje Realo,",
       `dëshiroj të vizitoj këtë pronë: ${title} (ID ${propertyId})`,
-      propertyUrl,
+      link,
       "",
       `Dita: ${dayText()}`,
       `Koha: ${time}`,
       name.trim() ? `Emri: ${name.trim()}` : "",
     ].filter((line, i, all) => line !== "" || all[i - 1] !== "");
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(lines.join("\n").trim())}`, "_blank", "noopener");
+    window.open(whatsappLink(lines.join("\n").trim()), "_blank", "noopener");
   };
 
-  const askUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    `Përshëndetje Realo, kam një pyetje për pronën: ${title} (ID ${propertyId})\n${propertyUrl}`
-  )}`;
+  const askUrl = whatsappLink(propertyQuestion(propertyId, title));
   const priceSuffix = !isForSale && !/[/]|muaj/i.test(price) ? " / muaj" : "";
 
   return (
