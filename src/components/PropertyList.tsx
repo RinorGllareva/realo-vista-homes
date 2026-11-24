@@ -113,12 +113,7 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters, onChange }) => {
     <main className="px-4 py-8 md:px-5 md:py-10">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="font-title text-3xl text-real-estate-primary">Prona të disponueshme</h2>
-            <p className="mt-1 text-sm text-real-estate-primary/60" aria-live="polite">
-              {isLoading ? "Duke ngarkuar pronat…" : `${filtered.length} prona`}
-            </p>
-          </div>
+          <h2 className="font-title text-3xl text-real-estate-primary">Prona të disponueshme</h2>
           <label className="flex items-center gap-2 text-sm text-real-estate-primary/70">
             Rendit:
             <select
@@ -179,10 +174,7 @@ const PropertyList: React.FC<PropertyListProps> = ({ filters, onChange }) => {
         </div>
 
         {filtered.length > visible && (
-          <div className="mt-10 flex flex-col items-center gap-3">
-            <p className="text-sm text-real-estate-primary/60">
-              Po shfaqen {shown.length} nga {filtered.length}
-            </p>
+          <div className="mt-10 flex justify-center">
             <button
               onClick={() => setVisible((v) => v + PAGE_SIZE)}
               className="rounded-full bg-real-estate-primary px-7 py-3 font-text text-sm font-semibold uppercase tracking-[0.16em] text-real-estate-secondary transition hover:bg-real-estate-primary/90"
