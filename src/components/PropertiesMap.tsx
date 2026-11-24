@@ -1,12 +1,13 @@
-import React, { useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import React, { useMemo, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { Link } from "react-router-dom";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, MapPin, MousePointerClick } from "lucide-react";
 import { sizedImage } from "@/lib/api";
 import {
   PLACEHOLDER_IMAGE,
+  PROPERTY_TYPES,
   firstImage,
   propertyPath,
   propertyTypeLabel,
@@ -18,15 +19,19 @@ import { formatPublicPrice } from "@/lib/price";
 
 import "leaflet/dist/leaflet.css";
 
+type Deal = "all" | "sale" | "rent";
+
+const PIN_SVG = `
+  <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 0C7.164 0 0 7.164 0 16c0 12 16 24 16 24s16-12 16-24c0-8.836-7.164-16-16-16z" fill="#c69937"/>
+    <circle cx="16" cy="14" r="6" fill="#0a4834"/>
+  </svg>
+`;
+
 // Brand pin, shared by every marker.
 const pinIcon = L.divIcon({
   className: "custom-property-marker",
-  html: `
-    <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 0C7.164 0 0 7.164 0 16c0 12 16 24 16 24s16-12 16-24c0-8.836-7.164-16-16-16z" fill="#c69937"/>
-      <circle cx="16" cy="14" r="6" fill="#0a4834"/>
-    </svg>
-  `,
+  html: PIN_SVG,
   iconSize: [32, 40],
   iconAnchor: [16, 40],
   popupAnchor: [0, -36],
@@ -46,12 +51,18 @@ const clusterIcon = (cluster: { getChildCount: () => number }) => {
 // Rough box around Kosovo, to leave out listings with broken coordinates (e.g. 0,0).
 const inKosovo = (lat: number, lng: number) => lat > 41.5 && lat < 43.5 && lng > 19.5 && lng < 22;
 
-const Heading = () => (
-  <div className="mb-8 text-center">
-    <h2 className="mb-2 font-title text-3xl text-real-estate-secondary md:text-4xl">Shfleto pronat në hartë</h2>
-    <p className="text-white/70">Shiko pronat e disponueshme përmes hartës interaktive.</p>
-  </div>
-);
+const DEALS: Array<[Deal, string]> = [
+  ["all", "Të gjitha"],
+  ["sale", "Në shitje"],
+  ["rent", "Me qira"],
+];
+
+const chip = (active: boolean) =>
+  `shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${
+    active
+      ? "border-real-estate-secondary bg-real-estate-secondary text-real-estate-primary"
+      : "border-white/20 text-white/80 hover:border-real-estate-secondary hover:text-white"
+  }`;
 
 const PopupCard: React.FC<{ property: PropertySummary }> = ({ property }) => {
   const image = firstImage(property.images);
@@ -108,8 +119,10 @@ const PopupCard: React.FC<{ property: PropertySummary }> = ({ property }) => {
 
 const PropertiesMap: React.FC = () => {
   const { data, isLoading, isError } = useProperties();
+  const [deal, setDeal] = useState<Deal>("all");
+  const [type, setType] = useState("");
 
-  const properties = useMemo(
+  const mapped = useMemo(
     () =>
       (data ?? []).filter((p) => {
         const lat = Number(p.latitude);
@@ -119,52 +132,163 @@ const PropertiesMap: React.FC = () => {
     [data],
   );
 
+  const shown = useMemo(
+    () =>
+      mapped.filter(
+        (p) =>
+          (deal === "all" || (deal === "sale" ? p.isForSale : !p.isForSale)) &&
+          (!type || p.propertyType?.toLowerCase() === type.toLowerCase()),
+      ),
+    [mapped, deal, type],
+  );
+
+  // The same filters on the full listings page.
+  const listLink = useMemo(() => {
+    const params = new URLSearchParams();
+    if (deal !== "all") params.set("isForSale", String(deal === "sale"));
+    if (type) params.set("propertyType", type);
+    const query = params.toString();
+    return query ? `/Property?${query}` : "/Property";
+  }, [deal, type]);
+
   return (
-    <section id="map" className="scroll-mt-20 border-y border-real-estate-secondary/20 bg-real-estate-primary py-16 md:py-20">
-      <div className="container mx-auto px-4">
-        <Heading />
+    <section
+      id="map"
+      className="relative scroll-mt-20 overflow-hidden bg-real-estate-primary py-16 text-white md:py-24"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(198,153,55,0.14),transparent_45%),radial-gradient(circle_at_85%_90%,rgba(6,19,15,0.7),transparent_55%)]" />
 
-        {isLoading ? (
-          <Skeleton className="mx-auto h-[400px] w-full max-w-7xl rounded-lg md:h-[520px]" />
-        ) : isError ? (
-          <div className="mx-auto flex h-[400px] w-full max-w-7xl items-center justify-center rounded-lg bg-white/5 md:h-[520px]">
-            <p className="text-white/70">Pronat nuk mund të ngarkohen.</p>
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 md:px-6 lg:grid-cols-[340px_1fr] lg:gap-10">
+        {/* Panel: title, filters and legend */}
+        <div className="flex min-w-0 flex-col">
+          <p className="font-text text-xs uppercase tracking-[0.3em] text-real-estate-secondary sm:text-sm">
+            Harta e pronave
+          </p>
+          <h2 className="mt-3 font-title text-[clamp(2rem,5vw,2.9rem)] leading-[1.08] [text-wrap:balance]">
+            Shfleto pronat në hartë
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-white/70">
+            Gjej pronat sipas lagjes. Zgjidh llojin, pastaj kliko një pin për foto, çmim dhe detaje.
+          </p>
+
+          <div className="mt-7">
+            <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">Marrëveshja</p>
+            <div className="flex flex-wrap gap-2">
+              {DEALS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={deal === value}
+                  onClick={() => setDeal(value)}
+                  className={chip(deal === value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="mx-auto h-[440px] w-full max-w-7xl overflow-hidden rounded-xl border border-real-estate-secondary/30 bg-white p-1.5 shadow-2xl md:h-[560px]">
-            <MapContainer
-              center={[42.6629, 21.1655]}
-              zoom={12}
-              style={{ height: "100%", width: "100%", borderRadius: "0.6rem" }}
-              scrollWheelZoom={false}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <MarkerClusterGroup
-                chunkedLoading
-                showCoverageOnHover={false}
-                maxClusterRadius={45}
-                iconCreateFunction={clusterIcon}
+
+          <div className="mt-5">
+            <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">Lloji i pronës</p>
+            <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
+              <button type="button" aria-pressed={!type} onClick={() => setType("")} className={chip(!type)}>
+                Të gjitha
+              </button>
+              {PROPERTY_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  aria-pressed={type === t.value}
+                  onClick={() => setType(type === t.value ? "" : t.value)}
+                  className={chip(type === t.value)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-7 hidden space-y-2.5 border-t border-white/10 pt-6 text-sm text-white/70 lg:block">
+            <p className="flex items-center gap-3">
+              <span className="w-6 shrink-0" dangerouslySetInnerHTML={{ __html: PIN_SVG.replace('width="32" height="40"', 'width="20" height="25"') }} />
+              Një pronë
+            </p>
+            <p className="flex items-center gap-3">
+              <span className="flex w-6 shrink-0 justify-center">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-real-estate-secondary shadow-[0_0_0_4px_rgba(198,153,55,0.3)]">
+                  <span className="h-2 w-2 rounded-full bg-real-estate-primary" />
+                </span>
+              </span>
+              Disa prona afër njëra-tjetrës. Kliko për t'i parë
+            </p>
+          </div>
+
+          <Link
+            to={listLink}
+            className="mt-7 inline-flex items-center justify-center gap-2 self-start rounded-full border border-real-estate-secondary/60 px-5 py-2.5 text-sm font-semibold text-real-estate-secondary transition hover:bg-real-estate-secondary hover:text-real-estate-primary lg:mt-auto"
+          >
+            Shiko këto prona në listë <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {/* Map */}
+        <div className="realo-map relative h-[440px] overflow-hidden rounded-2xl border border-real-estate-secondary/35 bg-[#efe8d7] shadow-[0_30px_80px_-25px_rgba(0,0,0,0.8)] sm:h-[520px] lg:h-[620px]">
+          {isLoading ? (
+            <Skeleton className="h-full w-full rounded-none bg-[#efe8d7]" />
+          ) : isError ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-real-estate-primary/70">Pronat nuk mund të ngarkohen.</p>
+            </div>
+          ) : (
+            <>
+              <MapContainer
+                center={[42.6629, 21.1655]}
+                zoom={12}
+                zoomControl={false}
+                scrollWheelZoom={false}
+                style={{ height: "100%", width: "100%" }}
               >
-                {properties.map((property) => (
-                  <Marker
-                    key={property.propertyId}
-                    position={[Number(property.latitude), Number(property.longitude)]}
-                    icon={pinIcon}
-                  >
-                    <Popup className="property-popup" minWidth={260} maxWidth={260} autoPanPadding={[24, 24]}>
-                      <PopupCard property={property} />
-                    </Popup>
-                  </Marker>
-                ))}
-              </MarkerClusterGroup>
-            </MapContainer>
-          </div>
-        )}
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <ZoomControl position="bottomright" />
+                <MarkerClusterGroup
+                  // Re-group when the filters change.
+                  key={`${deal}-${type}`}
+                  chunkedLoading
+                  showCoverageOnHover={false}
+                  maxClusterRadius={45}
+                  iconCreateFunction={clusterIcon}
+                >
+                  {shown.map((property) => (
+                    <Marker
+                      key={property.propertyId}
+                      position={[Number(property.latitude), Number(property.longitude)]}
+                      icon={pinIcon}
+                    >
+                      <Popup className="property-popup" minWidth={260} maxWidth={260} autoPanPadding={[24, 24]}>
+                        <PopupCard property={property} />
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MarkerClusterGroup>
+              </MapContainer>
 
-        <div className="mx-auto mt-10 w-[70%] border-t border-[#bdb8a1]" />
+              <div className="pointer-events-none absolute left-3 top-3 z-[400] inline-flex items-center gap-2 rounded-full bg-real-estate-primary/90 px-3.5 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur">
+                <MousePointerClick className="h-4 w-4 text-real-estate-secondary" />
+                Kliko një pin për detaje
+              </div>
+              {shown.length === 0 && (
+                <div className="absolute inset-0 z-[400] flex items-center justify-center bg-[#06130f]/40">
+                  <p className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-real-estate-primary shadow-xl">
+                    Nuk ka prona në hartë për këtë zgjedhje.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </section>
   );
