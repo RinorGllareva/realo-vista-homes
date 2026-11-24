@@ -1,19 +1,50 @@
 /* Leaflet CSS */
 @import "leaflet/dist/leaflet.css";
 
-/* Custom Property Marker Styles */
-.custom-property-marker {
+/* Map pins: dark green with a gold edge and the gold Realo logo. */
+.realo-pin {
   background: transparent;
   border: none;
 }
 
-.custom-property-marker svg {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+.realo-pin svg {
+  overflow: visible;
+  filter: drop-shadow(0 6px 8px rgba(6, 19, 15, 0.45));
+  transform-origin: 50% 100%;
   transition: transform 0.2s ease;
 }
 
-.custom-property-marker:hover svg {
-  transform: scale(1.1);
+.realo-pin-body {
+  fill: #0a4834;
+  stroke: #c69937;
+  stroke-width: 2;
+  transition: fill 0.2s ease;
+}
+
+.realo-pin .realo-mark,
+.realo-cluster .realo-mark {
+  fill: #c69937;
+  transition: fill 0.2s ease;
+}
+
+.realo-pin:hover svg,
+.realo-pin.is-active svg {
+  transform: translateY(-3px) scale(1.12);
+}
+
+.realo-pin:hover .realo-pin-body,
+.realo-pin.is-active .realo-pin-body {
+  fill: #c69937;
+  stroke: #0a4834;
+}
+
+.realo-pin:hover .realo-mark,
+.realo-pin.is-active .realo-mark {
+  fill: #0a4834;
+}
+
+.realo-pin.is-active {
+  z-index: 1000 !important;
 }
 
 /* Map pin card: photo edge to edge, rounded, close button over the photo. */
@@ -60,30 +91,55 @@
   color: #c69937;
 }
 
-/* Groups of nearby pins */
+/* Groups of nearby pins: green disc, gold ring and logo, a soft gold pulse. */
 .realo-cluster {
   background: transparent;
 }
 
 .realo-cluster span {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background: #c69937;
-  box-shadow: 0 0 0 6px rgba(198, 153, 55, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
+  background: radial-gradient(circle at 35% 30%, #12664a, #0a4834 60%, #06130f);
+  border: 2px solid #c69937;
+  box-shadow: 0 8px 18px -4px rgba(6, 19, 15, 0.55);
   transition: transform 0.2s ease;
 }
 
-.realo-cluster span i {
-  height: 38%;
-  width: 38%;
-  border-radius: 9999px;
-  background: #0a4834;
+.realo-cluster span::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: inherit;
+  border: 2px solid rgba(198, 153, 55, 0.45);
+  animation: realo-cluster-pulse 2.4s ease-out infinite;
 }
 
 .realo-cluster:hover span {
-  transform: scale(1.08);
+  transform: scale(1.1);
+}
+
+.realo-cluster:hover .realo-mark {
+  fill: #e2c27a;
+}
+
+@keyframes realo-cluster-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realo-cluster span::before {
+    animation: none;
+  }
 }
 
 .leaflet-container {

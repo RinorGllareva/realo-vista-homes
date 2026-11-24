@@ -15,32 +15,44 @@ import {
 } from "@/lib/properties";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPublicPrice } from "@/lib/price";
+import { logoPathA, logoPathB } from "./RealoLoader";
 
 import "leaflet/dist/leaflet.css";
 
-// Brand pin, shared by every marker.
+// The Realo "O" logo, drawn inside the pins and clusters.
+const realoMark = (size: number, x = 0, y = 0) =>
+  `<svg class="realo-mark" x="${x}" y="${y}" width="${size}" height="${size}" viewBox="0 0 155.74 156.09"><path d="${logoPathA}"/><path d="${logoPathB}"/></svg>`;
+
+// Brand pin: dark green with a gold edge and the gold logo; turns gold on hover and while open.
 const pinIcon = L.divIcon({
-  className: "custom-property-marker",
+  className: "realo-pin",
   html: `
-    <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 0C7.164 0 0 7.164 0 16c0 12 16 24 16 24s16-12 16-24c0-8.836-7.164-16-16-16z" fill="#c69937"/>
-      <circle cx="16" cy="14" r="6" fill="#0a4834"/>
+    <svg width="38" height="48" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+      <path class="realo-pin-body" d="M20 48.5S3 31.6 3 19a17 17 0 1 1 34 0c0 12.6-17 29.5-17 29.5z"/>
+      ${realoMark(20, 10, 9)}
     </svg>
   `,
-  iconSize: [32, 40],
-  iconAnchor: [16, 40],
-  popupAnchor: [0, -36],
+  iconSize: [38, 48],
+  iconAnchor: [19, 47],
+  popupAnchor: [0, -42],
 });
 
-// Groups of nearby pins. No number on purpose: the site does not show how many listings there are.
+// Groups of nearby pins, sized by how many they hold. No number on purpose: the site does not
+// show how many listings there are.
 const clusterIcon = (cluster: { getChildCount: () => number }) => {
   const count = cluster.getChildCount();
-  const size = count < 10 ? 38 : count < 50 ? 46 : 54;
+  const size = count < 10 ? 44 : count < 50 ? 52 : 60;
   return L.divIcon({
     className: "realo-cluster",
-    html: `<span style="width:${size}px;height:${size}px"><i></i></span>`,
+    html: `<span style="width:${size}px;height:${size}px"><svg width="${Math.round(size * 0.5)}" height="${Math.round(size * 0.5)}" viewBox="0 0 155.74 156.09" class="realo-mark"><path d="${logoPathA}"/><path d="${logoPathB}"/></svg></span>`,
     iconSize: [size, size],
   });
+};
+
+// Keeps the pin gold while its card is open.
+const pinEvents = {
+  popupopen: (e: L.LeafletEvent) => (e.target as L.Marker).getElement()?.classList.add("is-active"),
+  popupclose: (e: L.LeafletEvent) => (e.target as L.Marker).getElement()?.classList.remove("is-active"),
 };
 
 // Rough box around Kosovo, to leave out listings with broken coordinates (e.g. 0,0).
@@ -153,6 +165,7 @@ const PropertiesMap: React.FC = () => {
                     key={property.propertyId}
                     position={[Number(property.latitude), Number(property.longitude)]}
                     icon={pinIcon}
+                    eventHandlers={pinEvents}
                   >
                     <Popup className="property-popup" minWidth={260} maxWidth={260} autoPanPadding={[24, 24]}>
                       <PopupCard property={property} />
