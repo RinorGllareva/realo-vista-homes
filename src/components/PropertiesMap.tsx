@@ -15,39 +15,40 @@ import {
 } from "@/lib/properties";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPublicPrice } from "@/lib/price";
-import { logoPathA, logoPathB } from "./RealoLoader";
+import { PROPERTY_TYPE_ICON_SVG } from "@/lib/propertyTypeIcons";
 
 import "leaflet/dist/leaflet.css";
 
-// The Realo "O" logo, drawn inside the pins and clusters.
-const realoMark = (size: number, x = 0, y = 0) =>
-  `<svg class="realo-mark" x="${x}" y="${y}" width="${size}" height="${size}" viewBox="0 0 155.74 156.09"><path d="${logoPathA}"/><path d="${logoPathB}"/></svg>`;
-
-// Brand pin: dark green with a gold edge and the gold logo; turns gold on hover and while open.
-const pinIcon = L.divIcon({
-  className: "realo-pin",
-  html: `
-    <svg width="38" height="48" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-      <path class="realo-pin-body" d="M20 48.5S3 31.6 3 19a17 17 0 1 1 34 0c0 12.6-17 29.5-17 29.5z"/>
-      ${realoMark(20, 10, 9)}
-    </svg>
-  `,
-  iconSize: [38, 48],
-  iconAnchor: [19, 47],
-  popupAnchor: [0, -42],
-});
-
-// Groups of nearby pins, sized by how many they hold. No number on purpose: the site does not
-// show how many listings there are.
-const clusterIcon = (cluster: { getChildCount: () => number }) => {
-  const count = cluster.getChildCount();
-  const size = count < 10 ? 44 : count < 50 ? 52 : 60;
-  return L.divIcon({
-    className: "realo-cluster",
-    html: `<span style="width:${size}px;height:${size}px"><svg width="${Math.round(size * 0.5)}" height="${Math.round(size * 0.5)}" viewBox="0 0 155.74 156.09" class="realo-mark"><path d="${logoPathA}"/><path d="${logoPathB}"/></svg></span>`,
-    iconSize: [size, size],
-  });
+// Pin: a round white badge with a gold ring and the property-type icon, on a short gold stem
+// that points at the location. Turns green with a gold icon while its card is open.
+const pinIcons = new Map<string, L.DivIcon>();
+const pinIcon = (propertyType: string) => {
+  const type = (propertyType || "").toLowerCase();
+  let icon = pinIcons.get(type);
+  if (!icon) {
+    icon = L.divIcon({
+      className: "realo-pin",
+      html: `<span class="realo-pin-badge">${PROPERTY_TYPE_ICON_SVG[type] ?? PROPERTY_TYPE_ICON_SVG.house}</span><i class="realo-pin-stem"></i>`,
+      iconSize: [38, 50],
+      iconAnchor: [19, 49],
+      popupAnchor: [0, -46],
+    });
+    pinIcons.set(type, icon);
+  }
+  return icon;
 };
+
+// Group of nearby pins: stacked tags that invite zooming in. No number on purpose: the site
+// does not show how many listings there are.
+const ZOOM_IN_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>';
+const clusterIcon = () =>
+  L.divIcon({
+    className: "realo-cluster",
+    html: `<span class="realo-cluster-back"></span><span class="realo-cluster-mid"></span><span class="realo-cluster-tag">${ZOOM_IN_SVG}Zmadho</span>`,
+    iconSize: [96, 40],
+    iconAnchor: [48, 22],
+  });
 
 // Keeps the pin gold while its card is open.
 const pinEvents = {
@@ -157,14 +158,14 @@ const PropertiesMap: React.FC = () => {
               <MarkerClusterGroup
                 chunkedLoading
                 showCoverageOnHover={false}
-                maxClusterRadius={45}
+                maxClusterRadius={80}
                 iconCreateFunction={clusterIcon}
               >
                 {properties.map((property) => (
                   <Marker
                     key={property.propertyId}
                     position={[Number(property.latitude), Number(property.longitude)]}
-                    icon={pinIcon}
+                    icon={pinIcon(property.propertyType)}
                     eventHandlers={pinEvents}
                   >
                     <Popup className="property-popup" minWidth={260} maxWidth={260} autoPanPadding={[24, 24]}>
