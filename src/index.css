@@ -1,46 +1,62 @@
 /* Leaflet CSS */
 @import "leaflet/dist/leaflet.css";
 
-/* Map pins: dark green with a gold edge and the gold Realo logo. */
+/* Map pins: white badge, gold ring, green property-type icon, short gold stem to the spot. */
 .realo-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   background: transparent;
   border: none;
-}
-
-.realo-pin svg {
-  overflow: visible;
-  filter: drop-shadow(0 6px 8px rgba(6, 19, 15, 0.45));
   transform-origin: 50% 100%;
-  transition: transform 0.2s ease;
 }
 
-.realo-pin-body {
-  fill: #0a4834;
-  stroke: #c69937;
-  stroke-width: 2;
-  transition: fill 0.2s ease;
+.realo-pin-badge {
+  display: flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid #c69937;
+  color: #0a4834;
+  box-shadow: 0 6px 14px -4px rgba(6, 19, 15, 0.5);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-.realo-pin .realo-mark,
-.realo-cluster .realo-mark {
-  fill: #c69937;
-  transition: fill 0.2s ease;
+.realo-pin-badge svg {
+  height: 18px;
+  width: 18px;
 }
 
-.realo-pin:hover svg,
-.realo-pin.is-active svg {
-  transform: translateY(-3px) scale(1.12);
+.realo-pin-stem {
+  position: relative;
+  height: 10px;
+  width: 2px;
+  background: #c69937;
 }
 
-.realo-pin:hover .realo-pin-body,
-.realo-pin.is-active .realo-pin-body {
-  fill: #c69937;
-  stroke: #0a4834;
+.realo-pin-stem::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  height: 6px;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: 9999px;
+  background: #c69937;
 }
 
-.realo-pin:hover .realo-mark,
-.realo-pin.is-active .realo-mark {
-  fill: #0a4834;
+.realo-pin:hover .realo-pin-badge {
+  transform: translateY(-2px) scale(1.08);
+}
+
+.realo-pin.is-active .realo-pin-badge {
+  background: #0a4834;
+  color: #c69937;
+  transform: translateY(-4px) scale(1.25);
 }
 
 .realo-pin.is-active {
@@ -91,55 +107,53 @@
   color: #c69937;
 }
 
-/* Groups of nearby pins: green disc, gold ring and logo, a soft gold pulse. */
+/* Groups of nearby pins: stacked green tags that say "Zmadho" (zoom in). */
 .realo-cluster {
   background: transparent;
 }
 
 .realo-cluster span {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 6px;
+  height: 32px;
+  width: 88px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  background: #0a4834;
+}
+
+.realo-cluster .realo-cluster-back {
+  transform: translate(8px, -6px);
+  opacity: 0.45;
+}
+
+.realo-cluster .realo-cluster-mid {
+  transform: translate(4px, -3px);
+  opacity: 0.7;
+}
+
+.realo-cluster .realo-cluster-tag {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
-  background: radial-gradient(circle at 35% 30%, #12664a, #0a4834 60%, #06130f);
-  border: 2px solid #c69937;
-  box-shadow: 0 8px 18px -4px rgba(6, 19, 15, 0.55);
-  transition: transform 0.2s ease;
+  gap: 5px;
+  border: 1.5px solid #c69937;
+  color: #e2c27a;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 18px -6px rgba(6, 19, 15, 0.6);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.realo-cluster span::before {
-  content: "";
-  position: absolute;
-  inset: -7px;
-  border-radius: inherit;
-  border: 2px solid rgba(198, 153, 55, 0.45);
-  animation: realo-cluster-pulse 2.4s ease-out infinite;
+.realo-cluster .realo-cluster-tag svg {
+  height: 15px;
+  width: 15px;
 }
 
-.realo-cluster:hover span {
-  transform: scale(1.1);
-}
-
-.realo-cluster:hover .realo-mark {
-  fill: #e2c27a;
-}
-
-@keyframes realo-cluster-pulse {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(1.35);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .realo-cluster span::before {
-    animation: none;
-  }
+.realo-cluster:hover .realo-cluster-tag {
+  background: #c69937;
+  color: #0a4834;
 }
 
 .leaflet-container {
