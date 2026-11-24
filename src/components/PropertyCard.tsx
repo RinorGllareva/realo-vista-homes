@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Bath, BedDouble, Box, Eye, FileText, MapPin, Ruler } from "lucide-react";
 import { formatPublicPrice } from "@/lib/price";
+import { fetchPriority, imageSrcSet, sizedImage } from "@/lib/api";
 import {
   PLACEHOLDER_IMAGE,
   firstImage,
@@ -40,9 +41,12 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, className = "", e
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-[#efe8d7]">
         <img
-          src={image}
+          src={sizedImage(image, 960)}
+          srcSet={imageSrcSet(image, [480, 960])}
+          sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           alt={property.title}
           loading={eager ? "eager" : "lazy"}
+          {...fetchPriority(eager)}
           decoding="async"
           onError={() => setImage(PLACEHOLDER_IMAGE)}
           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"

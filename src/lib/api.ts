@@ -17,3 +17,15 @@ export const apiErrorMessage = (error: unknown, fallback = "Request failed.") =>
   const responseError = (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
   return responseError?.error || responseError?.message || fallback;
 };
+
+const API_IMAGE = /\/api\/Property\/GetPropertyImage\/\d+$/;
+
+/** A smaller WebP of a photo stored by the API (?w=); other image URLs come back unchanged. */
+export const sizedImage = (url: string, width: number) => (API_IMAGE.test(url) ? `${url}?w=${width}` : url);
+
+/** srcSet for an API-stored photo, so the browser picks the size it needs. */
+export const imageSrcSet = (url: string, widths: number[]) =>
+  API_IMAGE.test(url) ? widths.map((w) => `${url}?w=${w} ${w}w`).join(", ") : undefined;
+
+/** The HTML fetchpriority attribute (React 18 does not know the camelCase prop yet). */
+export const fetchPriority = (high: boolean) => ({ fetchpriority: high ? "high" : "auto" }) as Record<string, string>;

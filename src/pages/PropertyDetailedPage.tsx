@@ -35,7 +35,7 @@ import { RealoLoader } from "@/components/RealoLoader";
 import { firstImage, useProperties, type PropertySummary } from "@/lib/properties";
 import { PublicVirtualTour } from "@/components/PublicVirtualTour";
 import { Button } from "@/components/ui/button";
-import { apiUrl, normalizeMediaUrl } from "@/lib/api";
+import { apiUrl, fetchPriority, imageSrcSet, normalizeMediaUrl, sizedImage } from "@/lib/api";
 import { formatPublicPrice } from "@/lib/price";
 import type { VirtualTour } from "@/types/virtualTour";
 import { useToast } from "@/hooks/use-toast";
@@ -275,7 +275,13 @@ const PropertyDetailedPage = () => {
         <Header />
         <section className="relative flex min-h-[74vh] items-end overflow-hidden bg-[#06130f] md:min-h-[82vh]">
           {summary && (
-            <img src={firstImage(summary.images)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            // Same size as the listing card, so it is usually already in the browser cache.
+            <img
+              src={sizedImage(firstImage(summary.images), 960)}
+              alt=""
+              {...fetchPriority(true)}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-[#06130f]/60 to-black/25" />
           <div className="relative mx-auto w-full max-w-7xl px-5 pb-10 pt-28 md:pb-14">
@@ -453,7 +459,16 @@ const PropertyDetailedPage = () => {
       <Header />
 
       <section className="relative flex min-h-[74vh] items-end overflow-hidden md:min-h-[82vh]">
-        <img src={heroImage} alt={property.title} className="absolute inset-0 h-full w-full object-cover" />
+        {/* The card-size copy shows at once (usually cached); the sharper one replaces it. */}
+        <img src={sizedImage(heroImage, 960)} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={sizedImage(heroImage, 1600)}
+          srcSet={imageSrcSet(heroImage, [960, 1600])}
+          sizes="100vw"
+          alt={property.title}
+          {...fetchPriority(true)}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-[#06130f]/60 to-black/25" />
         <div className="relative mx-auto w-full max-w-7xl px-5 pb-10 pt-28 md:pb-14 md:pt-32">
           <p className="font-text text-xs uppercase tracking-[0.24em] text-real-estate-secondary md:text-sm md:tracking-[0.28em]">
@@ -861,7 +876,7 @@ const PropertyDetailedPage = () => {
               </>
             )}
             <img
-              src={galleryImages[lightboxImageIndex]?.imageUrl || heroImage}
+              src={sizedImage(galleryImages[lightboxImageIndex]?.imageUrl || heroImage, 1600)}
               alt={`${property.title} fullscreen`}
               className="max-h-[82vh] max-w-full object-contain transition-transform duration-200"
               style={{ transform: `scale(${lightboxZoom})` }}
@@ -882,7 +897,7 @@ const PropertyDetailedPage = () => {
                     index === lightboxImageIndex ? "border-real-estate-secondary" : "border-transparent opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <img src={img.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  <img src={sizedImage(img.imageUrl, 320)} alt="" loading="lazy" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>

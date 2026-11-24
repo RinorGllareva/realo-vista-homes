@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Expand, Images, Play } from "lucide-react";
+import { imageSrcSet, sizedImage } from "@/lib/api";
 
 interface PropertyGalleryProps {
   images: Array<{ imageUrl: string }>;
@@ -71,7 +72,9 @@ const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title, hasVir
                 aria-label={`Hap foton ${index + 1} nga ${images.length}`}
               >
                 <img
-                  src={img.imageUrl}
+                  src={sizedImage(img.imageUrl, 960)}
+                  srcSet={imageSrcSet(img.imageUrl, [480, 960, 1280])}
+                  sizes="100vw"
                   alt={index === 0 ? title : ""}
                   loading={index === 0 ? "eager" : "lazy"}
                   decoding="async"
@@ -100,7 +103,9 @@ const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title, hasVir
                 aria-label={`Hap foton ${index + 1} nga ${images.length}`}
               >
                 <img
-                  src={img.imageUrl}
+                  src={sizedImage(img.imageUrl, index === 0 ? 1280 : 960)}
+                  srcSet={imageSrcSet(img.imageUrl, [480, 960, 1600])}
+                  sizes={index === 0 ? "(min-width: 1280px) 640px, 50vw" : "(min-width: 1280px) 320px, 25vw"}
                   alt={index === 0 ? title : ""}
                   loading={index === 0 ? "eager" : "lazy"}
                   decoding="async"
